@@ -1,6 +1,9 @@
 # Configuration
 
-- Create .env file and config .env
+- Create .env file and config .env (.env.example), then run:
+```bash
+php artisan key:generate
+```
 
 - Install package
 
