@@ -8,6 +8,8 @@ use App\Enums\UserStatus;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -16,6 +18,8 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasUuids, Notifiable, SoftDeletes;
+
+    protected $table = 'users';
 
     /**
      * The attributes that are mass assignable.
@@ -41,17 +45,39 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
+    protected $casts = [
+        'password' => 'hashed',
+        'role' => UserRole::class,
+        'status' => UserStatus::class,
+        'deleted_at' => 'datetime',
+    ];
+
+    public function addresses(): HasMany
     {
-        return [
-            'password' => 'hashed',
-            'role' => UserRole::class,
-            'status' => UserStatus::class,
-            'deleted_at' => 'datetime',
-        ];
+        return $this->hasMany(UserAddress::class);
+    }
+
+    public function shops(): HasMany
+    {
+        return $this->hasMany(Shop::class, 'owner_id');
+    }
+
+    public function otpVerifications(): HasMany
+    {
+        return $this->hasMany(OtpVerification::class);
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function cart(): HasOne
+    {
+        return $this->hasOne(Cart::class);
     }
 }
