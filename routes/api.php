@@ -1,11 +1,15 @@
 <?php
 
 use App\Http\Controllers\Api\V1\ShopController;
+use App\Http\Controllers\Api\V1\AuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
-    
-    // Các Route yêu cầu Buyer phải đăng nhập qua Sanctum
+    // === PUBLIC ROUTES (Không cần đăng nhập) ===
+    Route::post('auth/login', [AuthController::class, 'login']);
+
+
+    // === PROTECTED ROUTES (Bắt buộc phải có token Sanctum) ===
     Route::middleware('auth:sanctum')->group(function () {
         
         // API Đăng ký mở shop

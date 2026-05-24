@@ -71,6 +71,20 @@ class DatabaseSeeder extends Seeder
         }
 
         // 4. Create Buyers, Addresses, Carts, Cart Items, Orders, and Order Items
+        // === CHÈN THÊM ĐOẠN NÀY: Tạo 1 tài khoản Buyer cố định để tiện test API ===
+        $testBuyer = User::updateOrCreate(
+            ['email' => 'testbuyer@example.com'],
+            [
+                'name' => 'Test Buyer',
+                'email' => 'testbuyer@example.com',
+                'phone' => '0912345678',
+                'role' => UserRole::Buyer,
+                'status' => UserStatus::Active,
+                'password' => Hash::make('12345678'), 
+            ]
+        );
+
+        // === SINH NGẪU NHIÊN 10 USER ===
         $buyers = User::factory(10)->create([
             'role' => UserRole::Buyer,
         ]);

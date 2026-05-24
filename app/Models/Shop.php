@@ -20,7 +20,7 @@ class Shop extends Model
         'name',
         'description',
         'logo_url',
-        'status',
+        // 'status',
     ];
 
     protected $casts = [
