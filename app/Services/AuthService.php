@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\PersonalAccessToken;
 use Exception;
 
 class AuthService
@@ -33,5 +34,22 @@ class AuthService
             'access_token' => $token,
             'token_type'   => 'Bearer'
         ];
+    }
+
+    /**
+    * Xử lý logic đăng xuất (hủy token)
+    */
+    public function logout(User $user): void
+    {
+        // Cách 1: Chỉ xóa đúng cái token mà user đang dùng để đăng xuất hiện tại
+        $token = $user->currentAccessToken();
+
+        if ($token instanceof PersonalAccessToken) 
+        {
+            $token->delete();
+        }
+
+        // Cách 2: Nếu muốn đăng xuất khỏi TẤT CẢ các thiết bị (Web, Mobile...) cùng lúc:
+        // $user->tokens()->delete();
     }
 }

@@ -11,6 +11,9 @@ Route::prefix('v1')->group(function () {
 
     // === PROTECTED ROUTES (Bắt buộc phải có token Sanctum) ===
     Route::middleware('auth:sanctum')->group(function () {
+
+        // API Đăng xuất tài khoản
+        Route::post('auth/logout', [AuthController::class, 'logout']);
         
         // API Đăng ký mở shop
         Route::post('shops/register', [ShopController::class, 'register']);

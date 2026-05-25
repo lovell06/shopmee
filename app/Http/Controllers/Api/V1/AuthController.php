@@ -55,4 +55,27 @@ class AuthController extends Controller
             ], $statusCode);
         }
     }
+
+    public function logout(): JsonResponse
+    {
+        try {
+            // Lấy thông tin user hiện tại đang đăng nhập qua token
+            $user = auth()->user();
+
+            // Gọi service xử lý xóa token
+            $this->authService->logout($user);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đăng xuất thành công!'
+            ], 200);
+
+        } catch (Exception $e) {
+            Log::error('Lỗi hệ thống đăng xuất: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Hệ thống đang gặp sự cố. Vui lòng thử lại sau!'
+            ], 500);
+        }
+    }
 }
