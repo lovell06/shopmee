@@ -8,12 +8,11 @@ use App\Services\AuthService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    public function __construct(protected AuthService $authService)
-    {
-    }
+    public function __construct(protected AuthService $authService) {}
 
     public function login(LoginRequest $request): JsonResponse
     {
@@ -55,7 +54,7 @@ class AuthController extends Controller
     public function logout(): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             $this->authService->logout($user);
 
             return response()->json([
