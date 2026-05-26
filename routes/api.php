@@ -3,11 +3,14 @@
 use App\Http\Controllers\Api\V1\ShopController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\PublicProductController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     // === PUBLIC ROUTES (Không cần đăng nhập) ===
     Route::post('auth/login', [AuthController::class, 'login']);
+
+    Route::get('products', [PublicProductController::class, 'index']);
 
 
     // === PROTECTED ROUTES (Bắt buộc phải có token Sanctum) ===

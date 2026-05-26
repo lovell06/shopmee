@@ -22,6 +22,8 @@ class ProductController extends Controller
     {
         try {
             $user = Auth::user();
+
+            /** @var \Illuminate\Pagination\LengthAwarePaginator $products */
             $products = $this->productService->getSellerProducts($user->id, $request->validated());
 
             return response()->json([

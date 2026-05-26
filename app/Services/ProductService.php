@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Shop;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class ProductService
@@ -17,7 +18,56 @@ class ProductService
      * @return LengthAwarePaginator
      * @throws Exception
      */
-    public function getSellerProducts(string $userId, array $filters): LengthAwarePaginator
+    
+     /**
+     * Lấy danh sách sản phẩm nâng cao (Search, Filter, Sort, Paginate)
+     */
+    public function getProductList(array $filters): LengthAwarePaginator
+    {
+        // Khởi tạo Query, luôn đi kèm dữ liệu variants và images
+        $query = Product::query()->with(['variants', 'images']); 
+
+        // 1. TÌM KIẾM: Theo tên sản phẩm
+        if (!empty($filters['search'])) {
+            $query->where('products.name', 'LIKE', '%' . $filters['search'] . '%');
+        }
+
+        // 2. BỘ LỌC KHOẢNG GIÁ: Tìm xem sản phẩm nào có biến thể nằm trong khoảng giá
+        if (isset($filters['price_min']) || isset($filters['price_max'])) {
+            $query->whereHas('variants', function ($q) use ($filters) {
+                if (isset($filters['price_min'])) {
+                    $q->where('price', '>=', $filters['price_min']);
+                }
+                if (isset($filters['price_max'])) {
+                    $q->where('price', '<=', $filters['price_max']);
+                }
+            });
+        }
+
+        // 3. SẮP XẾP NÂNG CAO: Kỹ thuật Subquery
+        if (($filters['sort_by'] ?? '') === 'price') {
+            $sortDir = $filters['sort_dir'] ?? 'desc';
+            
+            // Tạo một cột ảo 'target_price' lấy ra giá của biến thể đại diện để sắp xếp
+            $query->addSelect(['target_price' => DB::table('product_variants')
+                ->select('price')
+                ->whereColumn('product_id', 'products.id')
+                ->orderBy('price', $sortDir)
+                ->limit(1)
+            ])->orderBy('target_price', $sortDir);
+        } else {
+            // Mặc định sắp xếp theo ngày tạo mới nhất của sản phẩm
+            $sortBy  = $filters['sort_by'] ?? 'created_at';
+            $sortDir = $filters['sort_dir'] ?? 'desc';
+            $query->orderBy('products.' . $sortBy, $sortDir);
+        }
+
+        $limit = $filters['limit'] ?? 15;
+        
+        return $query->paginate($limit);
+    }
+    
+     public function getSellerProducts(string $userId, array $filters): LengthAwarePaginator
     {
         // 1. Kiểm tra shop của user
         $shop = Shop::query()->where('owner_id', $userId)->first();
