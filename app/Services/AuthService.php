@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\UserStatus;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\PersonalAccessToken;
 use Exception;
@@ -11,45 +11,38 @@ use Exception;
 class AuthService
 {
     /**
-     * Xử lý logic đăng nhập hệ thống
+     * Xu ly logic dang nhap he thong
      */
     public function login(array $credentials): array
     {
-        // 1. Kiểm tra Email xem có tồn tại trong hệ thống không
         $user = User::query()->where('email', $credentials['email'])->first();
 
-        // 2. Kiểm tra user hoặc mật khẩu có khớp không
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
-            // Quăng lỗi 401 nếu sai thông tin tài khoản
-            throw new Exception('Email hoặc mật khẩu không chính xác.', 401);
+        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+            throw new Exception('Email hoac mat khau khong chinh xac.', 401);
         }
 
-        // 3. Khởi tạo mã Token bằng Laravel Sanctum
-        // Truyền vai trò (role) của user vào tên token hoặc khả năng của token (abilities) nếu cần
-        $token = $user->createToken('access_token', [$user->role])->plainTextToken;
+        if ($user->status === UserStatus::Blocked) {
+            throw new Exception('Tai khoan cua ban da bi khoa. Vui long lien he quan tri vien.', 403);
+        }
 
-        // 4. Trả về thông tin cần thiết cho Controller
+        $token = $user->createToken('access_token', [$user->role->value])->plainTextToken;
+
         return [
-            'user'         => $user,
+            'user' => $user,
             'access_token' => $token,
-            'token_type'   => 'Bearer'
+            'token_type' => 'Bearer',
         ];
     }
 
     /**
-    * Xử lý logic đăng xuất (hủy token)
-    */
+     * Xu ly logic dang xuat
+     */
     public function logout(User $user): void
     {
-        // Cách 1: Chỉ xóa đúng cái token mà user đang dùng để đăng xuất hiện tại
         $token = $user->currentAccessToken();
 
-        if ($token instanceof PersonalAccessToken) 
-        {
+        if ($token instanceof PersonalAccessToken) {
             $token->delete();
         }
-
-        // Cách 2: Nếu muốn đăng xuất khỏi TẤT CẢ các thiết bị (Web, Mobile...) cùng lúc:
-        // $user->tokens()->delete();
     }
 }

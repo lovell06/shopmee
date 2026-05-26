@@ -21,6 +21,7 @@ class Product extends Model
         'name',
         'description',
         'status',
+        'admin_note',
     ];
 
     protected $casts = [

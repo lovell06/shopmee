@@ -1,29 +1,27 @@
 <?php
 
-use App\Http\Controllers\Api\V1\ShopController;
+use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\PublicProductController;
+use App\Http\Controllers\Api\V1\ShopController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
-    // === PUBLIC ROUTES (Không cần đăng nhập) ===
     Route::post('auth/login', [AuthController::class, 'login']);
-
     Route::get('products', [PublicProductController::class, 'index']);
 
-
-    // === PROTECTED ROUTES (Bắt buộc phải có token Sanctum) ===
     Route::middleware('auth:sanctum')->group(function () {
-
-        // API Đăng xuất tài khoản
         Route::post('auth/logout', [AuthController::class, 'logout']);
-        
-        // API Đăng ký mở shop
         Route::post('shops/register', [ShopController::class, 'register']);
-
-        // API Danh sách sản phẩm của Shop (Seller)
         Route::get('seller/products', [ProductController::class, 'index']);
-        
+
+        Route::prefix('admin')->group(function () {
+            Route::get('shops', [AdminController::class, 'listShops']);
+            Route::patch('shops/{shop}/status', [AdminController::class, 'updateShopStatus']);
+            Route::patch('users/{user}', [AdminController::class, 'updateUserStatus']);
+            Route::patch('products/{product}', [AdminController::class, 'updateProductStatus']);
+            Route::get('orders', [AdminController::class, 'listOrders']);
+        });
     });
 });
