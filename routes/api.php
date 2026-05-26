@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\ShopController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\ProductController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -17,6 +18,9 @@ Route::prefix('v1')->group(function () {
         
         // API Đăng ký mở shop
         Route::post('shops/register', [ShopController::class, 'register']);
+
+        // API Danh sách sản phẩm của Shop (Seller)
+        Route::get('seller/products', [ProductController::class, 'index']);
         
     });
 });
