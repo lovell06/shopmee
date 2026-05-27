@@ -15,6 +15,7 @@ Route::prefix('v1')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::post('shops/register', [ShopController::class, 'register']);
         Route::get('seller/products', [ProductController::class, 'index']);
+        Route::put('seller/products/{id}', [ProductController::class, 'update']);
         Route::post('products', [ProductController::class, 'store']);
 
         Route::prefix('admin')->group(function () {

@@ -318,5 +318,142 @@ class SellerProductTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['category_id', 'name', 'description', 'variants']);
     }
+
+    /**
+     * Test: Success updating a product and its variants.
+     */
+    public function test_seller_can_update_their_product_and_variants(): void
+    {
+        $user = User::factory()->create();
+        $shop = Shop::factory()->create(['owner_id' => $user->id]);
+        $category = \App\Models\Category::factory()->create();
+        $newCategory = \App\Models\Category::factory()->create();
+
+        $product = Product::factory()->create([
+            'shop_id' => $shop->id,
+            'category_id' => $category->id,
+            'name' => 'Original Name',
+            'description' => 'Original Description',
+        ]);
+
+        $variant1 = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'sku' => 'SKU-OLD-1',
+            'variant_name' => 'Old Variant 1',
+            'price' => 100000.00,
+            'stock_quantity' => 10,
+        ]);
+
+        $variant2 = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'sku' => 'SKU-OLD-2',
+            'variant_name' => 'Old Variant 2',
+            'price' => 200000.00,
+            'stock_quantity' => 20,
+        ]);
+
+        $payload = [
+            'category_id' => $newCategory->id,
+            'name' => 'Updated Name',
+            'description' => 'Updated Description',
+            'variants' => [
+                [
+                    'id' => $variant1->id,
+                    'sku' => 'SKU-NEW-1',
+                    'variant_name' => 'New Variant 1',
+                    'price' => 120000,
+                    'stock_quantity' => 15,
+                ],
+                [
+                    'id' => $variant2->id,
+                    'sku' => 'SKU-NEW-2',
+                    'variant_name' => 'New Variant 2',
+                    'price' => 220000,
+                    'stock_quantity' => 25,
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->putJson("/api/v1/seller/products/{$product->id}", $payload);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Cập nhật thông tin sản phẩm và biến thể thành công',
+                'data' => [
+                    'product_id' => $product->id,
+                ],
+            ]);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'category_id' => $newCategory->id,
+            'name' => 'Updated Name',
+            'description' => 'Updated Description',
+        ]);
+
+        $this->assertDatabaseHas('product_variants', [
+            'id' => $variant1->id,
+            'sku' => 'SKU-NEW-1',
+            'variant_name' => 'New Variant 1',
+            'price' => '120000.00',
+            'stock_quantity' => 15,
+        ]);
+
+        $this->assertDatabaseHas('product_variants', [
+            'id' => $variant2->id,
+            'sku' => 'SKU-NEW-2',
+            'variant_name' => 'New Variant 2',
+            'price' => '220000.00',
+            'stock_quantity' => 25,
+        ]);
+    }
+
+    /**
+     * Test: Seller cannot update another shop's product.
+     */
+    public function test_seller_cannot_update_product_of_another_shop(): void
+    {
+        $user = User::factory()->create();
+        $shop = Shop::factory()->create(['owner_id' => $user->id]);
+
+        $otherShop = Shop::factory()->create();
+        $category = \App\Models\Category::factory()->create();
+
+        $product = Product::factory()->create([
+            'shop_id' => $otherShop->id,
+            'category_id' => $category->id,
+            'name' => 'Other Product',
+        ]);
+
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+        ]);
+
+        $payload = [
+            'category_id' => $category->id,
+            'name' => 'Attempted Update Name',
+            'description' => 'Attempted Description',
+            'variants' => [
+                [
+                    'id' => $variant->id,
+                    'sku' => 'SKU-ATTEMPT',
+                    'variant_name' => 'Attempted Name',
+                    'price' => 100000,
+                    'stock_quantity' => 10,
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->putJson("/api/v1/seller/products/{$product->id}", $payload);
+
+        $response->assertStatus(403)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Bạn không có quyền chỉnh sửa sản phẩm này',
+            ]);
+    }
 }
 

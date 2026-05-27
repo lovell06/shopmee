@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\SellerProductsRequest;
 use App\Http\Requests\Api\V1\StoreProductRequest;
+use App\Http\Requests\Api\V1\UpdateProductRequest;
 use App\Services\ProductService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -52,7 +53,6 @@ class ProductController extends Controller
                     'total' => $products->total(),
                 ]
             ], 200);
-
         } catch (Exception $e) {
             $statusCode = $e->getCode() == 400 ? 400 : 500;
 
@@ -86,12 +86,44 @@ class ProductController extends Controller
                     'variants_count' => $product->variants()->count()
                 ]
             ], 201);
-
         } catch (Exception $e) {
-            $statusCode = $e->getCode() == 400 ? 400 : 500;
+            $statusCode = in_array($e->getCode(), [400, 403, 404]) ? $e->getCode() : 500;
 
             if ($statusCode === 500) {
                 Log::error('Lỗi hệ thống đăng sản phẩm: ' . $e->getMessage());
+                $message = 'Hệ thống đang gặp sự cố kỹ thuật. Vui lòng thử lại sau!';
+            } else {
+                $message = $e->getMessage();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message
+            ], $statusCode);
+        }
+    }
+
+    public function update(UpdateProductRequest $request, $id)
+    {
+        try {
+            $user = Auth::user();
+
+            $product = $this->productService->updateProduct($user->id, (int)$id, $request->validated());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật thông tin sản phẩm và biến thể thành công',
+                'data' => [
+                    'product_id' => $product->id,
+                    'updated_at' => $product->updated_at->format('Y-m-d H:i:s')
+                ]
+            ], 200);
+
+        } catch (Exception $e) {
+            $statusCode = in_array($e->getCode(), [400, 403, 404]) ? $e->getCode() : 500;
+
+            if ($statusCode === 500) {
+                Log::error('Lỗi hệ thống cập nhật sản phẩm: ' . $e->getMessage());
                 $message = 'Hệ thống đang gặp sự cố kỹ thuật. Vui lòng thử lại sau!';
             } else {
                 $message = $e->getMessage();

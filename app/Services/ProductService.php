@@ -138,5 +138,62 @@ class ProductService
             return $product;
         });
     }
+
+    /**
+     * Cập nhật thông tin sản phẩm và các biến thể
+     *
+     * @param string $userId
+     * @param int $productId
+     * @param array $data
+     * @return Product
+     * @throws Exception
+     */
+    public function updateProduct(string $userId, int $productId, array $data): Product
+    {
+        // 1. Kiểm tra shop của user
+        $shop = Shop::query()->where('owner_id', $userId)->first();
+        if (!$shop) {
+            throw new Exception('Bạn chưa đăng ký cửa hàng.', 400);
+        }
+
+        // 2. Tìm sản phẩm
+        $product = Product::find($productId);
+        if (!$product) {
+            throw new Exception('Sản phẩm không tồn tại.', 404);
+        }
+
+        // 3. Kiểm tra xem sản phẩm có thuộc về Shop của user hay không
+        if ($product->shop_id !== $shop->id) {
+            throw new Exception('Bạn không có quyền chỉnh sửa sản phẩm này', 403);
+        }
+
+        // 4. Kiểm tra xem tất cả các variant id truyền lên có thuộc về sản phẩm này hay không
+        $productVariantIds = $product->variants()->pluck('id')->toArray();
+        foreach ($data['variants'] as $variantData) {
+            if (!in_array($variantData['id'], $productVariantIds)) {
+                throw new Exception('Biến thể không hợp lệ cho sản phẩm này.', 400);
+            }
+        }
+
+        // 5. Thực hiện cập nhật trong database transaction
+        return DB::transaction(function () use ($product, $data) {
+            $product->update([
+                'category_id' => $data['category_id'],
+                'name' => $data['name'],
+                'description' => $data['description'],
+            ]);
+
+            foreach ($data['variants'] as $variantData) {
+                $product->variants()->where('id', $variantData['id'])->update([
+                    'sku' => $variantData['sku'],
+                    'variant_name' => $variantData['variant_name'],
+                    'price' => $variantData['price'],
+                    'stock_quantity' => $variantData['stock_quantity'],
+                ]);
+            }
+
+            return $product->fresh();
+        });
+    }
 }
 
