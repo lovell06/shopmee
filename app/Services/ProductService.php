@@ -99,4 +99,44 @@ class ProductService
         // 5. Phân trang kết quả
         return $query->orderBy('created_at', 'desc')->paginate(10);
     }
+
+    /**
+     * Đăng sản phẩm mới và tạo các biến thể
+     *
+     * @param string $userId
+     * @param array $data
+     * @return Product
+     * @throws Exception
+     */
+    public function createProduct(string $userId, array $data): Product
+    {
+        // 1. Kiểm tra shop của user
+        $shop = Shop::query()->where('owner_id', $userId)->first();
+        if (!$shop) {
+            throw new Exception('Bạn chưa đăng ký cửa hàng.', 400);
+        }
+
+        // 2. Thực hiện tạo sản phẩm và biến thể trong database transaction
+        return DB::transaction(function () use ($shop, $data) {
+            $product = Product::create([
+                'shop_id' => $shop->id,
+                'category_id' => $data['category_id'],
+                'name' => $data['name'],
+                'description' => $data['description'],
+                'status' => \App\Enums\ProductStatus::Active, // Đăng sản phẩm thì hoạt động ngay
+            ]);
+
+            foreach ($data['variants'] as $variantData) {
+                $product->variants()->create([
+                    'sku' => $variantData['sku'],
+                    'variant_name' => $variantData['variant_name'],
+                    'price' => $variantData['price'],
+                    'stock_quantity' => $variantData['stock_quantity'],
+                ]);
+            }
+
+            return $product;
+        });
+    }
 }
+

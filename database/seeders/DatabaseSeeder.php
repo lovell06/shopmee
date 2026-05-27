@@ -33,7 +33,12 @@ class DatabaseSeeder extends Seeder
 
         // 2. Create distinct Categories
         $categories = collect([
-            'Electronics', 'Fashion', 'Home & Living', 'Health & Beauty', 'Books', 'Sports'
+            'Electronics',
+            'Fashion',
+            'Home & Living',
+            'Health & Beauty',
+            'Books',
+            'Sports'
         ])->map(fn($name) => \App\Models\Category::firstOrCreate(['name' => $name]));
 
         // 3. Create Sellers, Shops, Products, and Variants
@@ -80,7 +85,7 @@ class DatabaseSeeder extends Seeder
                 'phone' => '0912345678',
                 'role' => UserRole::Buyer,
                 'status' => UserStatus::Active,
-                'password' => Hash::make('12345678'), 
+                'password' => Hash::make('12345678'),
             ]
         );
 

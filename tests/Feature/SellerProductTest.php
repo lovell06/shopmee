@@ -233,4 +233,90 @@ class SellerProductTest extends TestCase
         $this->assertCount(1, $data);
         $this->assertEquals('Stainless Water Bottle', $data[0]['name']);
     }
+
+    /**
+     * Test: Success posting a new product with variants.
+     */
+    public function test_seller_can_create_product_with_variants(): void
+    {
+        $user = User::factory()->create();
+        $shop = Shop::factory()->create(['owner_id' => $user->id]);
+        $category = \App\Models\Category::factory()->create();
+
+        $payload = [
+            'category_id' => $category->id,
+            'name' => 'Áo thun Polo Classic',
+            'description' => 'Mô tả chi tiết Áo thun Polo Classic',
+            'variants' => [
+                [
+                    'sku' => 'POLO-W-M',
+                    'variant_name' => 'White - M',
+                    'price' => 199000,
+                    'stock_quantity' => 50,
+                ],
+                [
+                    'sku' => 'POLO-W-L',
+                    'variant_name' => 'White - L',
+                    'price' => 209000,
+                    'stock_quantity' => 30,
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/products', $payload);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Đăng sản phẩm và tạo các biến thể thành công',
+                'data' => [
+                    'name' => 'Áo thun Polo Classic',
+                    'variants_count' => 2,
+                ],
+            ]);
+
+        $this->assertDatabaseHas('products', [
+            'shop_id' => $shop->id,
+            'category_id' => $category->id,
+            'name' => 'Áo thun Polo Classic',
+            'description' => 'Mô tả chi tiết Áo thun Polo Classic',
+            'status' => \App\Enums\ProductStatus::Active->value,
+        ]);
+
+        $this->assertDatabaseHas('product_variants', [
+            'sku' => 'POLO-W-M',
+            'variant_name' => 'White - M',
+            'price' => '199000.00',
+            'stock_quantity' => 50,
+        ]);
+
+        $this->assertDatabaseHas('product_variants', [
+            'sku' => 'POLO-W-L',
+            'variant_name' => 'White - L',
+            'price' => '209000.00',
+            'stock_quantity' => 30,
+        ]);
+    }
+
+    /**
+     * Test: Creating product fails validation when fields are missing or invalid.
+     */
+    public function test_create_product_validation_fails_for_invalid_data(): void
+    {
+        $user = User::factory()->create();
+        $shop = Shop::factory()->create(['owner_id' => $user->id]);
+
+        $payload = [
+            'name' => '', // empty name
+            'variants' => [], // empty variants
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/products', $payload);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['category_id', 'name', 'description', 'variants']);
+    }
 }
+

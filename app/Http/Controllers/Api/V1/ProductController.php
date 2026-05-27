@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\SellerProductsRequest;
+use App\Http\Requests\Api\V1\StoreProductRequest;
 use App\Services\ProductService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -68,4 +69,39 @@ class ProductController extends Controller
             ], $statusCode);
         }
     }
+
+    public function store(StoreProductRequest $request)
+    {
+        try {
+            $user = Auth::user();
+
+            $product = $this->productService->createProduct($user->id, $request->validated());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đăng sản phẩm và tạo các biến thể thành công',
+                'data' => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'variants_count' => $product->variants()->count()
+                ]
+            ], 201);
+
+        } catch (Exception $e) {
+            $statusCode = $e->getCode() == 400 ? 400 : 500;
+
+            if ($statusCode === 500) {
+                Log::error('Lỗi hệ thống đăng sản phẩm: ' . $e->getMessage());
+                $message = 'Hệ thống đang gặp sự cố kỹ thuật. Vui lòng thử lại sau!';
+            } else {
+                $message = $e->getMessage();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message
+            ], $statusCode);
+        }
+    }
 }
+
