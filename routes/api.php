@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\PublicProductController;
 use App\Http\Controllers\Api\V1\ShopController;
 use App\Http\Controllers\Api\V1\SellerOrderController;
+use App\Http\Controllers\Api\V1\SellerDashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -19,6 +20,7 @@ Route::prefix('v1')->group(function () {
         Route::put('seller/products/{id}', [ProductController::class, 'update']);
         Route::delete('seller/products/{id}', [ProductController::class, 'destroy']);
         Route::patch('seller/orders/{id}', [SellerOrderController::class, 'updateStatus']);
+        Route::get('seller/dashboard/revenue', [SellerDashboardController::class, 'revenue']);
         Route::post('products', [ProductController::class, 'store']);
 
         Route::prefix('admin')->group(function () {
