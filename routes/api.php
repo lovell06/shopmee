@@ -23,6 +23,8 @@ Route::prefix('v1')->group(function () {
 
         Route::prefix('admin')->group(function () {
             Route::get('shops', [AdminController::class, 'listShops']);
+            Route::get('users', [AdminController::class, 'listUsers']);
+            Route::get('products', [AdminController::class, 'listProducts']);
             Route::patch('shops/{shop}/status', [AdminController::class, 'updateShopStatus']);
             Route::patch('users/{user}', [AdminController::class, 'updateUserStatus']);
             Route::patch('products/{product}', [AdminController::class, 'updateProductStatus']);

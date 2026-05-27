@@ -9,6 +9,7 @@ use App\Enums\ProductStatus;
 use App\Enums\ShopStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -35,6 +36,41 @@ class AdminApiTest extends TestCase
                 'success' => false,
                 'message' => 'Khong co quyen truy cap tai nguyen admin.',
             ]);
+    }
+
+    public function test_admin_can_list_users_with_filter_and_search(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $blockedSeller = User::factory()->create([
+            'name' => 'Target Seller',
+            'email' => 'seller@example.com',
+            'phone' => '0912345678',
+            'role' => UserRole::Seller,
+            'status' => UserStatus::Blocked,
+        ]);
+        $otherUser = User::factory()->create([
+            'role' => UserRole::Buyer,
+            'status' => UserStatus::Active,
+        ]);
+
+        Shop::factory()->create(['owner_id' => $blockedSeller->id]);
+        Order::factory()->create(['user_id' => $blockedSeller->id]);
+        Order::factory()->create(['user_id' => $otherUser->id]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/users?role=seller&status=blocked&search=Target');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $blockedSeller->id)
+            ->assertJsonPath('data.0.name', 'Target Seller')
+            ->assertJsonPath('data.0.email', 'seller@example.com')
+            ->assertJsonPath('data.0.phone', '0912345678')
+            ->assertJsonPath('data.0.role', UserRole::Seller->value)
+            ->assertJsonPath('data.0.status', UserStatus::Blocked->value)
+            ->assertJsonPath('data.0.shops_count', 1)
+            ->assertJsonPath('data.0.orders_count', 1);
     }
 
     public function test_admin_can_list_pending_shops(): void
@@ -185,6 +221,53 @@ class AdminApiTest extends TestCase
             'status' => ProductStatus::Hidden->value,
             'admin_note' => 'San pham vi pham mo ta.',
         ]);
+    }
+
+    public function test_admin_can_list_products_with_shop_owner_and_category_information(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $owner = User::factory()->create([
+            'name' => 'Shop Owner',
+            'email' => 'owner@example.com',
+        ]);
+        $shop = Shop::factory()->create([
+            'owner_id' => $owner->id,
+            'name' => 'Tech House',
+            'status' => ShopStatus::Active,
+        ]);
+        $category = Category::factory()->create(['name' => 'Laptop']);
+
+        $targetProduct = Product::factory()->create([
+            'shop_id' => $shop->id,
+            'category_id' => $category->id,
+            'name' => 'Gaming Laptop Pro',
+            'status' => ProductStatus::Hidden,
+            'admin_note' => 'Can review lai noi dung san pham.',
+        ]);
+
+        ProductVariant::factory()->count(2)->create(['product_id' => $targetProduct->id]);
+
+        Product::factory()->create([
+            'name' => 'Other Product',
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/v1/admin/products?status=hidden&shop_id={$shop->id}&search=Gaming");
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $targetProduct->id)
+            ->assertJsonPath('data.0.name', 'Gaming Laptop Pro')
+            ->assertJsonPath('data.0.status', ProductStatus::Hidden->value)
+            ->assertJsonPath('data.0.admin_note', 'Can review lai noi dung san pham.')
+            ->assertJsonPath('data.0.shop.id', $shop->id)
+            ->assertJsonPath('data.0.shop.name', 'Tech House')
+            ->assertJsonPath('data.0.shop.owner.id', $owner->id)
+            ->assertJsonPath('data.0.shop.owner.email', 'owner@example.com')
+            ->assertJsonPath('data.0.category.id', $category->id)
+            ->assertJsonPath('data.0.category.name', 'Laptop')
+            ->assertJsonPath('data.0.variants_count', 2);
     }
 
     public function test_admin_can_list_orders_and_filter_by_shop(): void

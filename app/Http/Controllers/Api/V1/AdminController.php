@@ -9,9 +9,11 @@ use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\Api\V1\Admin\AdminOrderListRequest;
+use App\Http\Requests\Api\V1\Admin\AdminProductListRequest;
 use App\Http\Requests\Api\V1\Admin\AdminProductStatusRequest;
 use App\Http\Requests\Api\V1\Admin\AdminShopListRequest;
 use App\Http\Requests\Api\V1\Admin\AdminShopStatusRequest;
+use App\Http\Requests\Api\V1\Admin\AdminUserListRequest;
 use App\Http\Requests\Api\V1\Admin\AdminUserStatusRequest;
 use App\Models\Order;
 use App\Models\Product;
@@ -74,6 +76,128 @@ class AdminController extends Controller
                 'current_page' => $shops->currentPage(),
                 'per_page' => $shops->perPage(),
                 'total' => $shops->total(),
+            ],
+        ], 200);
+    }
+
+    public function listUsers(AdminUserListRequest $request): JsonResponse
+    {
+        if ($response = $this->ensureAdminAccess()) {
+            return $response;
+        }
+
+        $users = User::query()
+            ->withCount(['shops', 'orders'])
+            ->when(
+                $request->filled('status'),
+                fn ($query) => $query->where('status', $request->input('status'))
+            )
+            ->when(
+                $request->filled('role'),
+                fn ($query) => $query->where('role', $request->input('role'))
+            )
+            ->when(
+                $request->filled('search'),
+                fn ($query) => $query->where(function ($subQuery) use ($request) {
+                    $search = $request->input('search');
+
+                    $subQuery
+                        ->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%')
+                        ->orWhere('phone', 'like', '%' . $search . '%');
+                })
+            )
+            ->orderByDesc('created_at')
+            ->paginate($request->integer('limit', 15))
+            ->through(fn (User $user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'role' => $user->role->value,
+                'status' => $user->status->value,
+                'shops_count' => $user->shops_count,
+                'orders_count' => $user->orders_count,
+                'created_at' => $user->created_at?->format('Y-m-d H:i:s'),
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $users->items(),
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+            ],
+        ], 200);
+    }
+
+    public function listProducts(AdminProductListRequest $request): JsonResponse
+    {
+        if ($response = $this->ensureAdminAccess()) {
+            return $response;
+        }
+
+        $products = Product::query()
+            ->with([
+                'shop:id,owner_id,name,status',
+                'shop.owner:id,name,email',
+                'category:id,name',
+            ])
+            ->withCount(['variants', 'images'])
+            ->when(
+                $request->filled('status'),
+                fn ($query) => $query->where('status', $request->input('status'))
+            )
+            ->when(
+                $request->filled('shop_id'),
+                fn ($query) => $query->where('shop_id', $request->integer('shop_id'))
+            )
+            ->when(
+                $request->filled('search'),
+                fn ($query) => $query->where(function ($subQuery) use ($request) {
+                    $search = $request->input('search');
+
+                    $subQuery
+                        ->where('products.name', 'like', '%' . $search . '%')
+                        ->orWhereHas('shop', fn ($shopQuery) => $shopQuery->where('name', 'like', '%' . $search . '%'))
+                        ->orWhereHas('category', fn ($categoryQuery) => $categoryQuery->where('name', 'like', '%' . $search . '%'));
+                })
+            )
+            ->orderByDesc('created_at')
+            ->paginate($request->integer('limit', 15))
+            ->through(fn (Product $product) => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'description' => $product->description,
+                'status' => $product->status->value,
+                'admin_note' => $product->admin_note,
+                'shop' => $product->shop ? [
+                    'id' => $product->shop->id,
+                    'name' => $product->shop->name,
+                    'status' => $product->shop->status->value,
+                    'owner' => $product->shop->owner ? [
+                        'id' => $product->shop->owner->id,
+                        'name' => $product->shop->owner->name,
+                        'email' => $product->shop->owner->email,
+                    ] : null,
+                ] : null,
+                'category' => $product->category ? [
+                    'id' => $product->category->id,
+                    'name' => $product->category->name,
+                ] : null,
+                'variants_count' => $product->variants_count,
+                'images_count' => $product->images_count,
+                'created_at' => $product->created_at?->format('Y-m-d H:i:s'),
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $products->items(),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
             ],
         ], 200);
     }
