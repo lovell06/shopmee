@@ -455,5 +455,100 @@ class SellerProductTest extends TestCase
                 'message' => 'Bạn không có quyền chỉnh sửa sản phẩm này',
             ]);
     }
+
+    /**
+     * Test: Unauthenticated user cannot delete a product.
+     */
+    public function test_unauthenticated_user_cannot_delete_product(): void
+    {
+        $response = $this->deleteJson('/api/v1/seller/products/1');
+        $response->assertStatus(401);
+    }
+
+    /**
+     * Test: Authenticated user without a shop gets 400 when deleting.
+     */
+    public function test_user_without_shop_cannot_delete_product(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/v1/seller/products/1');
+
+        $response->assertStatus(400)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Bạn chưa đăng ký cửa hàng.',
+            ]);
+    }
+
+    /**
+     * Test: Seller can successfully soft delete their own product.
+     */
+    public function test_seller_can_soft_delete_their_own_product(): void
+    {
+        $user = User::factory()->create();
+        $shop = Shop::factory()->create(['owner_id' => $user->id]);
+        $product = Product::factory()->create(['shop_id' => $shop->id]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/v1/seller/products/{$product->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Xóa sản phẩm thành công',
+            ]);
+
+        // Assert it is soft-deleted (soft deleted records remain in DB but are queried via withTrashed())
+        $this->assertSoftDeleted('products', [
+            'id' => $product->id,
+        ]);
+    }
+
+    /**
+     * Test: Seller cannot delete another shop's product.
+     */
+    public function test_seller_cannot_delete_product_of_another_shop(): void
+    {
+        $user = User::factory()->create();
+        $shop = Shop::factory()->create(['owner_id' => $user->id]);
+
+        $otherShop = Shop::factory()->create();
+        $product = Product::factory()->create(['shop_id' => $otherShop->id]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/v1/seller/products/{$product->id}");
+
+        $response->assertStatus(403)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Bạn không có quyền xóa sản phẩm này',
+            ]);
+
+        // Assert it is not deleted
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    /**
+     * Test: Deleting non-existent product returns 404.
+     */
+    public function test_deleting_non_existent_product_returns_404(): void
+    {
+        $user = User::factory()->create();
+        Shop::factory()->create(['owner_id' => $user->id]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->deleteJson('/api/v1/seller/products/99999');
+
+        $response->assertStatus(404)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Sản phẩm không tồn tại.',
+            ]);
+    }
 }
 

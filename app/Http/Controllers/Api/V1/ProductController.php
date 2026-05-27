@@ -135,5 +135,34 @@ class ProductController extends Controller
             ], $statusCode);
         }
     }
+
+    public function destroy($id)
+    {
+        try {
+            $user = Auth::user();
+
+            $this->productService->deleteProduct($user->id, (int)$id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa sản phẩm thành công'
+            ], 200);
+
+        } catch (Exception $e) {
+            $statusCode = in_array($e->getCode(), [400, 403, 404]) ? $e->getCode() : 500;
+
+            if ($statusCode === 500) {
+                Log::error('Lỗi hệ thống xóa sản phẩm: ' . $e->getMessage());
+                $message = 'Hệ thống đang gặp sự cố kỹ thuật. Vui lòng thử lại sau!';
+            } else {
+                $message = $e->getMessage();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message
+            ], $statusCode);
+        }
+    }
 }
 

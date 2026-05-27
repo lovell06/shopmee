@@ -195,5 +195,36 @@ class ProductService
             return $product->fresh();
         });
     }
+
+    /**
+     * Soft delete a sản phẩm
+     *
+     * @param string $userId
+     * @param int $productId
+     * @return bool
+     * @throws Exception
+     */
+    public function deleteProduct(string $userId, int $productId): bool
+    {
+        // 1. Kiểm tra shop của user
+        $shop = Shop::query()->where('owner_id', $userId)->first();
+        if (!$shop) {
+            throw new Exception('Bạn chưa đăng ký cửa hàng.', 400);
+        }
+
+        // 2. Tìm sản phẩm
+        $product = Product::find($productId);
+        if (!$product) {
+            throw new Exception('Sản phẩm không tồn tại.', 404);
+        }
+
+        // 3. Kiểm tra xem sản phẩm có thuộc về Shop của user hay không
+        if ($product->shop_id !== $shop->id) {
+            throw new Exception('Bạn không có quyền xóa sản phẩm này', 403);
+        }
+
+        // 4. Thực hiện soft delete
+        return $product->delete();
+    }
 }
 
