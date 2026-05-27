@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\PublicProductController;
 use App\Http\Controllers\Api\V1\ShopController;
 use App\Http\Controllers\Api\V1\SellerOrderController;
 use App\Http\Controllers\Api\V1\SellerDashboardController;
+use App\Http\Controllers\Api\V1\CartController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -22,6 +23,9 @@ Route::prefix('v1')->group(function () {
         Route::patch('seller/orders/{id}', [SellerOrderController::class, 'updateStatus']);
         Route::get('seller/dashboard/revenue', [SellerDashboardController::class, 'revenue']);
         Route::post('products', [ProductController::class, 'store']);
+        // API Thêm vào giỏ hàng 
+        Route::post('cart/add', [CartController::class, 'store']);
+        Route::get('cart', [CartController::class, 'index']);
 
         Route::prefix('admin')->group(function () {
             Route::get('shops', [AdminController::class, 'listShops']);

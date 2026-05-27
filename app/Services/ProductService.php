@@ -157,7 +157,8 @@ class ProductService
         }
 
         // 2. Tìm sản phẩm
-        $product = Product::find($productId);
+        
+        $product = Product::query()->find($productId);
         if (!$product) {
             throw new Exception('Sản phẩm không tồn tại.', 404);
         }
@@ -213,7 +214,7 @@ class ProductService
         }
 
         // 2. Tìm sản phẩm
-        $product = Product::find($productId);
+        $product = Product::query()->find($productId);
         if (!$product) {
             throw new Exception('Sản phẩm không tồn tại.', 404);
         }
@@ -224,7 +225,9 @@ class ProductService
         }
 
         // 4. Thực hiện soft delete
-        return $product->delete();
+        // return $product->delete();
+        $action = 'delete';
+        return $product->$action();
     }
 }
 
