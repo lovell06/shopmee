@@ -26,7 +26,7 @@ class OrderService
         }
 
         // 2. Tìm đơn hàng
-        $order = Order::find($orderId);
+        $order = Order::query()->find($orderId);
         if (!$order) {
             throw new Exception('Đơn hàng không tồn tại.', 404);
         }

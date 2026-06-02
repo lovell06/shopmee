@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login']);
     Route::get('products', [PublicProductController::class, 'index']);
+    Route::post('register', [AuthController::class, 'register']);
+    Route::post('register/verify', [AuthController::class, 'verify']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
