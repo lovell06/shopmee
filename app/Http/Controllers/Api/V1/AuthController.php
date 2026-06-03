@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\RegisterRequest;
 use App\Http\Requests\Api\V1\VerifyOtpRequest;
 use App\Http\Requests\Api\V1\Auth\LoginRequest;
+use App\Http\Requests\Api\V1\ForgotPasswordRequest;
+use App\Http\Requests\Api\V1\VerifyPasswordOtpRequest;
+use App\Http\Requests\Api\V1\ResetPasswordRequest;
 use App\Services\AuthService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +19,7 @@ class AuthController extends Controller
 {
     public function __construct(protected AuthService $authService) {}
 
+    // -- Đăng ký --
     /**
      * API Gửi đơn đăng ký thông tin ban đầu
      */
@@ -65,6 +69,7 @@ class AuthController extends Controller
         }
     }
 
+    // -- Đăng nhập --
     public function login(LoginRequest $request): JsonResponse
     {
         try {
@@ -102,6 +107,71 @@ class AuthController extends Controller
         }
     }
 
+    // -- Quên mật khẩu --
+    /**
+     * API Bước 1: Gửi yêu cầu quên mật khẩu
+     */
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        try {
+            $this->authService->sendPasswordResetOtp($request->validated());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Hệ thống đã gửi mã OTP khôi phục mật khẩu vào Email của bạn.'
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * API Bước 2: Kiểm tra OTP quên mật khẩu
+     */
+    public function verifyPasswordOtp(VerifyPasswordOtpRequest $request): JsonResponse
+    {
+        try {
+            $resetToken = $this->authService->verifyPasswordResetOtp($request->validated());
+
+            return response()->json([
+                'success'     => true,
+                'message'     => 'Mã OTP chính xác. Vui lòng chuyển hướng sang trang đổi mật khẩu mới.',
+                'reset_token' => $resetToken // Trả token này về cho Frontend giữ chân
+            ], 200);
+        } catch (Exception $e) {
+            $code = in_array($e->getCode(), [400, 404]) ? $e->getCode() : 500;
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], $code);
+        }
+    }
+
+    /**
+     * API Bước 3: Đặt lại mật khẩu mới hoàn toàn
+     */
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        try {
+            $this->authService->resetPassword($request->validated());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Chúc mừng! Mật khẩu của bạn đã được thay đổi thành công. Hãy đăng nhập lại.'
+            ], 200);
+        } catch (Exception $e) {
+            $code = in_array($e->getCode(), [400, 404]) ? $e->getCode() : 500;
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], $code);
+        }
+    }
+
+    // -- Đăng xuất --
     public function logout(): JsonResponse
     {
         try {

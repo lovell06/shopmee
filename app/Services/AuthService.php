@@ -11,10 +11,14 @@ use Illuminate\Support\Facades\Mail;
 use App\Enums\Purpose;
 use Laravel\Sanctum\PersonalAccessToken;
 use Exception;
+use App\Mail\ForgotPasswordMail;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class AuthService
 {
 
+    // -- Đăng kí tài khoản --
     /**
      * Bước 1: Đăng ký thông tin và phát hành mã OTP băm (Hash) gửi qua Email
      */
@@ -139,6 +143,122 @@ class AuthService
             'access_token' => $token,
             'token_type' => 'Bearer',
         ];
+    }
+
+    // -- Quên mật khẩu --
+    /**
+     * Bước 1: Gửi mã OTP quên mật khẩu qua Email
+     */
+    public function sendPasswordResetOtp(array $data): bool
+    {
+        return DB::transaction(function () use ($data) {
+            $user = User::query()->where('email', $data['email'])->first();
+            if (!$user) {
+                throw new Exception('Tài khoản không tồn tại.', 404);
+            }
+
+            // Tạo mã OTP ngẫu nhiên 6 số
+            $otpCode = (string) rand(100000, 999999);
+
+            // Dọn dẹp các mã OTP quên mật khẩu cũ của user này để tránh xung đột
+            DB::table('otp_verifications')
+                ->where('user_id', $user->id)
+                ->where('purpose', Purpose::PasswordForgot->value)
+                ->delete();
+
+            // Lưu OTP đã băm (Hash) vào bảng theo cấu trúc bảo mật của nhóm
+            DB::table('otp_verifications')->insert([
+                'user_id'       => $user->id,
+                'code_hash'     => Hash::make($otpCode),
+                'purpose'       => Purpose::PasswordForgot->value,
+                'expires_at'    => now()->addMinutes(5),
+                'created_at'    => now(),
+                'attempt_count' => 0,
+            ]);
+
+            // Bắn thư đi ngay lập tức
+            Mail::to($user->email)->send(new ForgotPasswordMail($otpCode));
+
+            return true;
+        });
+    }
+
+    /**
+     * Bước 2: Xác thực mã OTP và cấp Token đổi mật khẩu tạm thời
+     */
+    public function verifyPasswordResetOtp(array $data): string
+    {
+        $user = User::query()->where('email', $data['email'])->first();
+        if (!$user) {
+            throw new Exception('Tài khoản không tồn tại.', 404);
+        }
+
+        // Lấy các bản ghi OTP quên mật khẩu còn hạn ra soát mã băm
+        $verifications = DB::table('otp_verifications')
+            ->where('user_id', $user->id)
+            ->where('purpose', Purpose::PasswordForgot->value)
+            ->whereNull('used_at')
+            ->where('expires_at', '>', now())
+            ->get();
+
+        $validOtp = null;
+        foreach ($verifications as $verification) {
+            if (Hash::check($data['otp_code'], $verification->code_hash)) {
+                $validOtp = $verification;
+                break;
+            }
+        }
+
+        if (!$validOtp) {
+            DB::table('otp_verifications')
+                ->where('user_id', $user->id)
+                ->where('purpose', Purpose::PasswordForgot->value)
+                ->increment('attempt_count');
+
+            throw new Exception('Mã OTP không chính xác hoặc đã hết hạn.', 400);
+        }
+
+        // Đánh dấu mã OTP đã được sử dụng
+        DB::table('otp_verifications')
+            ->where('id', $validOtp->id)
+            ->update(['used_at' => now()]);
+
+        // Sinh một chuỗi token ngẫu nhiên đại diện cho phiên làm việc an toàn
+        $resetToken = Str::random(60);
+
+        // Lưu token kèm ID của user vào Cache hệ thống trong 15 phút
+        Cache::put('password_reset_token_' . $resetToken, $user->id, now()->addMinutes(15));
+
+        return $resetToken;
+    }
+
+    /**
+     * Bước 3: Kiểm tra phiên làm việc và thực hiện cập nhật mật khẩu mới
+     */
+    public function resetPassword(array $data): bool
+    {
+        $cacheKey = 'password_reset_token_' . $data['reset_token'];
+
+        // Đọc ID người dùng từ Cache ra để nhận diện danh tính
+        $userId = Cache::get($cacheKey);
+        if (!$userId) {
+            throw new Exception('Phiên xác thực đã hết hạn hoặc không hợp lệ. Vui lòng lấy lại mã OTP.', 400);
+        }
+
+        // Tìm và cập nhật mật khẩu thật sự của User dưới DB
+        $user = User::query()->find($userId);
+        if (!$user) {
+            throw new Exception('Không tìm thấy tài khoản người dùng tương ứng.', 404);
+        }
+
+        $user->update([
+            'password' => Hash::make($data['password'])
+        ]);
+
+        // Xóa mã token khỏi Cache ngay sau khi dùng xong để ngăn chặn dùng lại (Replay Attack)
+        Cache::forget($cacheKey);
+
+        return true;
     }
 
     /**

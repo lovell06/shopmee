@@ -15,6 +15,10 @@ Route::prefix('v1')->group(function () {
     Route::get('products', [PublicProductController::class, 'index']);
     Route::post('register', [AuthController::class, 'register']);
     Route::post('register/verify', [AuthController::class, 'verify']);
+    // Luồng Quên mật khẩu trọn gói của bạn
+    Route::post('password/forgot', [AuthController::class, 'forgotPassword']);
+    Route::post('password/verify', [AuthController::class, 'verifyPasswordOtp']);
+    Route::post('password/reset', [AuthController::class, 'resetPassword']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
