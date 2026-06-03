@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\ShopController;
 use App\Http\Controllers\Api\V1\SellerOrderController;
 use App\Http\Controllers\Api\V1\SellerDashboardController;
 use App\Http\Controllers\Api\V1\CartController;
+use App\Http\Controllers\Api\V1\AddressController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -32,6 +33,11 @@ Route::prefix('v1')->group(function () {
         // API Thêm vào giỏ hàng 
         Route::post('cart/add', [CartController::class, 'store']);
         Route::get('cart', [CartController::class, 'index']);
+        // Hệ thống API quản lý sổ địa chỉ
+        Route::get('addresses', [AddressController::class, 'index']);       // Lấy danh sách
+        Route::post('addresses/add', [AddressController::class, 'store']);      // Thêm mới
+        Route::put('addresses/{id}', [AddressController::class, 'update']); // Sửa đổi
+        Route::delete('addresses/{id}', [AddressController::class, 'destroy']); // Xóa bỏ
 
         Route::prefix('admin')->group(function () {
             Route::get('shops', [AdminController::class, 'listShops']);
