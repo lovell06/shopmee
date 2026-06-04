@@ -76,7 +76,7 @@ class DatabaseSeeder extends Seeder
         }
 
         // 4. Create Buyers, Addresses, Carts, Cart Items, Orders, and Order Items
-        // === CHÈN THÊM ĐOẠN NÀY: Tạo 1 tài khoản Buyer cố định để tiện test API ===
+        // === Tạo 1 tài khoản Buyer cố định để tiện test API ===
         $testBuyer = User::updateOrCreate(
             ['email' => 'testbuyer@example.com'],
             [
@@ -90,13 +90,17 @@ class DatabaseSeeder extends Seeder
         );
 
         // === SINH NGẪU NHIÊN 10 USER ===
+        // === SINH NGẪU NHIÊN 10 USER ===
         $buyers = User::factory(10)->create([
             'role' => UserRole::Buyer,
         ]);
 
-        foreach ($buyers as $buyer) {
-            // Create user address
-            \App\Models\UserAddress::factory(fake()->numberBetween(1, 2))->create([
+        
+        $allBuyers = $buyers->concat([$testBuyer]);
+
+        foreach ($allBuyers as $buyer) {
+            // Tạo các địa chỉ nhận hàng mẫu cho User và hứng lấy danh sách trả về
+            $addresses = \App\Models\UserAddress::factory(fake()->numberBetween(1, 2))->create([
                 'user_id' => $buyer->id,
             ]);
 
@@ -122,19 +126,35 @@ class DatabaseSeeder extends Seeder
             // Create a few Orders
             $orderCount = fake()->numberBetween(1, 2);
             for ($i = 0; $i < $orderCount; $i++) {
+                // Bốc ngẫu nhiên 1 thực thể địa chỉ vừa sinh ở trên của chính User này
+                $randomAddress = $addresses->random();
+
                 $order = \App\Models\Order::factory()->create([
-                    'user_id' => $buyer->id,
+                    'user_id'         => $buyer->id,
+                    'user_address_id' => $randomAddress->id, // Định danh địa chỉ chính xác
+                    'total_amount'    => 0,                  // Tạm thời để 0 để cộng dồn toán học bên dưới
                 ]);
 
                 // Add random order items
                 $orderVariants = $variants->random(fake()->numberBetween(1, 3));
+                $calculatedTotal = 0; // Biến tạm tính toán tổng tiền đơn hàng
+
                 foreach ($orderVariants as $variant) {
+                    $quantity = fake()->numberBetween(1, 3);
+                    
                     \App\Models\OrderItem::factory()->create([
-                        'order_id' => $order->id,
+                        'order_id'           => $order->id,
                         'product_variant_id' => $variant->id,
-                        'unit_price' => $variant->price,
+                        'quantity'           => $quantity, // Điền trường quantity cho order_items
+                        'unit_price'         => $variant->price,
                     ]);
+
+                    // Tính tổng tiền toán học: Giá biến thể sản phẩm * Số lượng đặt mẫu
+                    $calculatedTotal += ($variant->price * $quantity);
                 }
+
+                // Cập nhật số tiền total_amount chuẩn chỉnh, khớp logic 100% với các item vừa chèn
+                $order->update(['total_amount' => $calculatedTotal]);
             }
         }
     }
