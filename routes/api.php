@@ -39,10 +39,13 @@ Route::prefix('v1')->group(function () {
         Route::post('addresses/add', [AddressController::class, 'store']);      // Thêm mới
         Route::put('addresses/{id}', [AddressController::class, 'update']); // Sửa đổi
         Route::delete('addresses/{id}', [AddressController::class, 'destroy']); // Xóa bỏ
-        // API Đơn hàng & Giả lập thanh toán theo file mới
+        // API Đơn hàng & Giả lập thanh toán 
         Route::post('checkout', [OrderController::class, 'checkout']);
         Route::post('payments/simulate', [OrderController::class, 'simulatePayment']);
         Route::get('orders/{id}/status', [OrderController::class, 'checkStatus']);
+        
+        Route::get('orders', [OrderController::class, 'index']); // Lấy danh sách lịch sử
+        Route::post('orders/{id}/cancel', [OrderController::class, 'cancel']); // Hủy đơn hàng theo ID
 
         Route::prefix('admin')->group(function () {
             Route::get('shops', [AdminController::class, 'listShops']);

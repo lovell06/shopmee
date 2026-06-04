@@ -149,4 +149,52 @@ class OrderService
     
         return true;
     }
+
+    /**
+     * Lấy danh sách lịch sử đơn hàng của User
+     */
+    public function getUserOrderHistory(string $userId)
+    {
+        return Order::query()
+            ->where('user_id', $userId)
+            ->with(['items.productVariant.product']) // Eager load để lấy tên/ảnh sản phẩm ở Frontend
+            ->orderByDesc('created_at') // Đơn hàng mới nhất xếp lên đầu
+            ->get();
+    }
+
+    /**
+     * Xử lý hủy đơn hàng (Chỉ cho phép khi ở trạng thái Pending)
+     */
+    public function cancelOrder(int $orderId, string $userId): bool
+    {
+        return DB::transaction(function () use ($orderId, $userId) {
+            // 1. Tìm đơn hàng hợp lệ của chính User đó
+            $order = Order::query()->where('id', $orderId)->where('user_id', $userId)->first();
+            if (!$order) {
+                throw new Exception('Không tìm thấy đơn hàng yêu cầu.', 404);
+            }
+
+            // 2. CHỐT CHẶN NGHIỆP VỤ: Chỉ cho phép hủy khi trạng thái là Pending
+            if ($order->status !== OrderStatus::Pending) {
+                throw new Exception('Đơn hàng đã được xử lý hoặc đã hủy, không thể thực hiện hủy lúc này.', 400);
+            }
+
+            // 3. HOÀN KHO: Duyệt qua tất cả món hàng trong đơn để cộng trả lại kho sản phẩm
+            $orderItems = OrderItem::query()->where('order_id', $order->id)->with('productVariant')->get();
+            foreach ($orderItems as $item) {
+                $variant = $item->productVariant;
+                if ($variant) {
+                    $variant->stock_quantity += $item->quantity;
+                    $variant->save();
+                }
+            }
+
+            // 4. Cập nhật trạng thái đơn hàng thành Cancelled (Hủy)
+            $order->update([
+                'status' => OrderStatus::Cancelled->value,
+            ]);
+
+            return true;
+        });
+    }
 }

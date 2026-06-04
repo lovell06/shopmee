@@ -104,4 +104,43 @@ class OrderController extends Controller
             'status' => $order->status
         ], 200);
     }
+
+    /**
+     * API Xem lịch sử đặt hàng
+     */
+    public function index(): JsonResponse
+    {
+        try {
+            $userId = Auth::id();
+            $orders = $this->orderService->getUserOrderHistory($userId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tải danh sách lịch sử đơn hàng thành công.',
+                'data'    => $orders
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Lỗi API lấy lịch sử đơn hàng: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Lỗi hệ thống, không thể tải đơn hàng.'], 500);
+        }
+    }   
+
+    /**
+     * API Hủy đơn hàng
+     */
+    public function cancel(int $id): JsonResponse
+    {
+        try {
+            $userId = Auth::id();
+            $this->orderService->cancelOrder($id, $userId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã hủy đơn hàng thành công! Sản phẩm đã được hoàn trả lại vào kho.'
+            ], 200);
+        } catch (Exception $e) {
+            $statusCode = in_array($e->getCode(), [400, 404]) ? $e->getCode() : 500;
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $statusCode);
+        }
+    }
 }
