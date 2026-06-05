@@ -36,8 +36,9 @@ class MomoService
     {
         $amount = (int) $order->total_amount;
         $timestamp = time();
-        $orderId = $order->id . '_' . $timestamp;
-        $requestId = $order->id . '_' . $timestamp;
+        // Sử dụng thêm chuỗi ngẫu nhiên uniqid() để tránh trùng lặp requestId/orderId nếu nhấn thanh toán quá nhanh
+        $orderId = $order->id . '_' . $timestamp . '_' . uniqid();
+        $requestId = $order->id . '_' . $timestamp . '_' . uniqid();
         $orderInfo = "Thanh toan don hang #" . $order->id;
         $extraData = "";
         $requestType = "captureWallet";
@@ -141,49 +142,80 @@ class MomoService
         $parts = explode('_', $orderIdWithTime);
         $orderId = (int) $parts[0];
 
-        $order = Order::find($orderId);
-        if (!$order) {
-            Log::error("MoMo callback: Order #{$orderId} not found.");
-            return false;
-        }
-
-        // Avoid double processing if already paid
-        if ($order->payment_status === PaymentStatus::Paid) {
-            Log::info("MoMo callback: Order #{$orderId} is already marked as Paid.");
-            return true;
-        }
-
         $resultCode = (int) ($data['resultCode'] ?? -1);
+        $amount = (int) ($data['amount'] ?? 0);
 
-        if ($resultCode === 0) {
-            $order->update([
-                'payment_status' => PaymentStatus::Paid->value,
-                'status' => OrderStatus::Pending->value
-            ]);
-            Log::info("MoMo callback: Order #{$orderId} marked as Paid.");
-            return true;
-        } else {
-            $order->update([
-                'payment_status' => PaymentStatus::Failed->value,
-                'status' => OrderStatus::Failed->value
-            ]);
+        try {
+            // Sử dụng database transaction kết hợp lockForUpdate để ngăn chặn Race Condition
+            // khi cả IPN callback và Client Redirect Verify cùng lúc xử lý một đơn hàng.
+            return \Illuminate\Support\Facades\DB::transaction(function () use ($orderId, $resultCode, $amount) {
+                $order = Order::where('id', $orderId)->lockForUpdate()->first();
 
-            try {
-                \Illuminate\Support\Facades\DB::transaction(function () use ($order) {
-                    $orderItems = $order->items()->with('productVariant')->get();
-                    foreach ($orderItems as $item) {
-                        $variant = $item->productVariant;
-                        if ($variant) {
-                            $variant->increment('stock_quantity', $item->quantity);
-                        }
+                if (!$order) {
+                    Log::error("MoMo callback: Order #{$orderId} not found.");
+                    return false;
+                }
+
+                // 1. Tránh xử lý trùng lặp nếu đơn hàng đã được đánh dấu là Paid (Thành công)
+                if ($order->payment_status === PaymentStatus::Paid) {
+                    Log::info("MoMo callback: Order #{$orderId} is already marked as Paid.");
+                    return true;
+                }
+
+                // 2. Tránh xử lý trùng lặp nếu đơn hàng đã được đánh dấu là Failed (Thất bại) trước đó
+                if ($order->payment_status === PaymentStatus::Failed) {
+                    Log::info("MoMo callback: Order #{$orderId} is already marked as Failed.");
+                    return false;
+                }
+
+                if ($resultCode === 0) {
+                    // Bảo mật: Xác thực số tiền thanh toán thực tế khớp với tổng tiền đơn hàng
+                    if ($amount !== (int) $order->total_amount) {
+                        Log::error("MoMo callback: Amount mismatch for order #{$orderId}. Expected: {$order->total_amount}, Got: {$amount}");
+                        
+                        $order->update([
+                            'payment_status' => PaymentStatus::Failed->value,
+                            'status' => OrderStatus::Failed->value
+                        ]);
+                        $this->restoreStock($order);
+                        return false;
                     }
-                });
-            } catch (Exception $e) {
-                Log::error("Failed to restore stock for failed MoMo order #{$orderId}: " . $e->getMessage());
-            }
 
-            Log::info("MoMo callback: Order #{$orderId} marked as Failed due to resultCode {$resultCode}.");
+                    $order->update([
+                        'payment_status' => PaymentStatus::Paid->value,
+                        'status' => OrderStatus::Pending->value
+                    ]);
+                    Log::info("MoMo callback: Order #{$orderId} marked as Paid.");
+                    return true;
+                } else {
+                    $order->update([
+                        'payment_status' => PaymentStatus::Failed->value,
+                        'status' => OrderStatus::Failed->value
+                    ]);
+
+                    $this->restoreStock($order);
+
+                    Log::info("MoMo callback: Order #{$orderId} marked as Failed due to resultCode {$resultCode}.");
+                    return false;
+                }
+            });
+        } catch (Exception $e) {
+            Log::error("Failed to process MoMo payment result for order #{$orderId}: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Khôi phục số lượng tồn kho sản phẩm khi đơn hàng thất bại
+     */
+    protected function restoreStock(Order $order): void
+    {
+        $orderItems = $order->items()->with('productVariant')->get();
+        foreach ($orderItems as $item) {
+            $variant = $item->productVariant;
+            if ($variant) {
+                $variant->increment('stock_quantity', $item->quantity);
+            }
         }
     }
 }

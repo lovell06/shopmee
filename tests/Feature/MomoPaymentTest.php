@@ -28,8 +28,8 @@ class MomoPaymentTest extends TestCase
         // Configure services.php with dummy values for testing
         config([
             'services.momo.partner_code' => 'MOMOBKUN20180529',
-            'services.momo.access_key' => 'klm0566393433554',
-            'services.momo.secret_key' => 'at06566393432307',
+            'services.momo.access_key' => 'klm05TvNBzhg7h7j',
+            'services.momo.secret_key' => 'at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa',
             'services.momo.endpoint' => 'https://test-payment.momo.vn/v2/gateway/api/create',
             'services.momo.redirect_url' => 'http://localhost:3000/payment-success',
             'services.momo.ipn_url' => 'https://localhost:8000/api/v1/payments/momo-ipn',
@@ -170,8 +170,8 @@ class MomoPaymentTest extends TestCase
         ];
 
         // Generate valid signature
-        $secretKey = 'at06566393432307';
-        $accessKey = 'klm0566393433554';
+        $secretKey = 'at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa';
+        $accessKey = 'klm05TvNBzhg7h7j';
         
         $rawHash = "accessKey=" . $accessKey .
             "&amount=" . $ipnData['amount'] .
@@ -260,8 +260,8 @@ class MomoPaymentTest extends TestCase
         ];
 
         // Generate signature
-        $secretKey = 'at06566393432307';
-        $accessKey = 'klm0566393433554';
+        $secretKey = 'at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa';
+        $accessKey = 'klm05TvNBzhg7h7j';
         
         $rawHash = "accessKey=" . $accessKey .
             "&amount=" . $verifyData['amount'] .
@@ -334,8 +334,8 @@ class MomoPaymentTest extends TestCase
         ];
 
         // Generate signature
-        $secretKey = 'at06566393432307';
-        $accessKey = 'klm0566393433554';
+        $secretKey = 'at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa';
+        $accessKey = 'klm05TvNBzhg7h7j';
         
         $rawHash = "accessKey=" . $accessKey .
             "&amount=" . $verifyData['amount'] .
@@ -364,6 +364,88 @@ class MomoPaymentTest extends TestCase
         $this->assertEquals(OrderStatus::Failed, $order->fresh()->status);
 
         // Check stock was restored (+3)
+        $this->assertEquals(13, $variant->fresh()->stock_quantity);
+    }
+
+    /**
+     * Test Client Redirect Verification - failed/cancelled duplicate requests are idempotent and do not restore stock twice
+     */
+    public function test_momo_client_verify_failure_idempotent(): void
+    {
+        $user = User::factory()->create();
+        
+        $product = Product::factory()->create();
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'stock_quantity' => 10,
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'total_amount' => 150000,
+            'payment_status' => PaymentStatus::Pending,
+        ]);
+
+        $orderItem = OrderItem::create([
+            'order_id' => $order->id,
+            'product_variant_id' => $variant->id,
+            'quantity' => 3,
+            'unit_price' => 50000,
+        ]);
+
+        $orderIdWithTime = $order->id . '_1234567890';
+        
+        $verifyData = [
+            'partnerCode' => 'MOMOBKUN20180529',
+            'orderId' => $orderIdWithTime,
+            'requestId' => $orderIdWithTime,
+            'amount' => '150000',
+            'orderInfo' => 'Thanh toan don hang #' . $order->id,
+            'orderType' => 'momo_wallet',
+            'transId' => '2301234567',
+            'resultCode' => '49', // user cancelled
+            'message' => 'User cancelled',
+            'payType' => 'qr',
+            'responseTime' => '1234567890',
+            'extraData' => '',
+        ];
+
+        // Generate signature
+        $secretKey = 'at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa';
+        $accessKey = 'klm05TvNBzhg7h7j';
+        
+        $rawHash = "accessKey=" . $accessKey .
+            "&amount=" . $verifyData['amount'] .
+            "&extraData=" . $verifyData['extraData'] .
+            "&message=" . $verifyData['message'] .
+            "&orderId=" . $verifyData['orderId'] .
+            "&orderInfo=" . $verifyData['orderInfo'] .
+            "&orderType=" . $verifyData['orderType'] .
+            "&partnerCode=" . $verifyData['partnerCode'] .
+            "&payType=" . $verifyData['payType'] .
+            "&requestId=" . $verifyData['requestId'] .
+            "&responseTime=" . $verifyData['responseTime'] .
+            "&resultCode=" . $verifyData['resultCode'] .
+            "&transId=" . $verifyData['transId'];
+
+        $verifyData['signature'] = hash_hmac("sha256", $rawHash, $secretKey);
+
+        // First call
+        $response1 = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/payments/momo-verify', $verifyData);
+        $response1->assertStatus(200);
+
+        $this->assertEquals(PaymentStatus::Failed, $order->fresh()->payment_status);
+        $this->assertEquals(13, $variant->fresh()->stock_quantity);
+
+        // Second call (duplicate callback / user refresh)
+        $response2 = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/payments/momo-verify', $verifyData);
+        
+        $response2->assertStatus(200)
+            ->assertJsonPath('success', false);
+
+        // Stock must STILL be 13, not 16!
         $this->assertEquals(13, $variant->fresh()->stock_quantity);
     }
 }
