@@ -229,5 +229,25 @@ class ProductService
         $action = 'delete';
         return $product->$action();
     }
+
+    /**
+     * Lấy thông tin chi tiết một sản phẩm theo ID (dành cho API công khai)
+     *
+     * @param int $id
+     * @return Product
+     * @throws Exception
+     */
+    public function getProductById(int $id): Product
+    {
+        $product = Product::query()
+            ->with(['variants', 'images', 'shop', 'category'])
+            ->find($id);
+
+        if (!$product) {
+            throw new Exception('Sản phẩm không tồn tại.', 404);
+        }
+
+        return $product;
+    }
 }
 

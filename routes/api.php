@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login']);
     Route::get('products', [PublicProductController::class, 'index']);
+    Route::get('products/{id}', [PublicProductController::class, 'show']);
     Route::post('register', [AuthController::class, 'register']);
     Route::post('register/verify', [AuthController::class, 'verify']);
     // Luồng Quên mật khẩu trọn gói của bạn
