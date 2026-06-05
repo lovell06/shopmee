@@ -288,7 +288,7 @@ class AdminApiTest extends TestCase
             'user_id' => $buyer->id,
             'status' => OrderStatus::Shipping,
             'payment_status' => PaymentStatus::Paid,
-            'payment_method' => PaymentMethod::CashOnDelivery,
+            'payment_method' => PaymentMethod::COD,
         ]);
 
         $otherOrder = Order::factory()->create([

@@ -71,7 +71,7 @@ class SellerOrderTest extends TestCase
         $shop = Shop::factory()->create(['owner_id' => $user->id]);
         
         $customer = User::factory()->create();
-        $order = Order::create([
+        $order = Order::factory()->create([
             'user_id' => $customer->id,
             'description' => 'Test order',
             'status' => OrderStatus::Pending,
@@ -100,7 +100,7 @@ class SellerOrderTest extends TestCase
         $otherVariant = ProductVariant::factory()->create(['product_id' => $otherProduct->id]);
 
         $customer = User::factory()->create();
-        $order = Order::create([
+        $order = Order::factory()->create([
             'user_id' => $customer->id,
             'description' => 'Test order',
             'status' => OrderStatus::Pending,
@@ -137,7 +137,7 @@ class SellerOrderTest extends TestCase
         $variant = ProductVariant::factory()->create(['product_id' => $product->id]);
 
         $customer = User::factory()->create();
-        $order = Order::create([
+        $order = Order::factory()->create([
             'user_id' => $customer->id,
             'description' => 'Test order',
             'status' => OrderStatus::Pending,
