@@ -44,7 +44,7 @@ class OrderFactory extends Factory
             'description' => fake()->sentence(),
             'status' => OrderStatus::Pending,
             'payment_status' => PaymentStatus::Pending,
-            'payment_method' => PaymentMethod::CashOnDelivery,
+            'payment_method' => PaymentMethod::COD,
         ];
     }
 }

@@ -21,6 +21,9 @@ Route::prefix('v1')->group(function () {
     Route::post('password/forgot', [AuthController::class, 'forgotPassword']);
     Route::post('password/verify', [AuthController::class, 'verifyPasswordOtp']);
     Route::post('password/reset', [AuthController::class, 'resetPassword']);
+    
+    // Webhook IPN của MoMo (Không qua auth vì do MoMo Server gọi đến)
+    Route::post('payments/momo-ipn', [OrderController::class, 'momoIpn']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
@@ -42,6 +45,7 @@ Route::prefix('v1')->group(function () {
         // API Đơn hàng & Giả lập thanh toán 
         Route::post('checkout', [OrderController::class, 'checkout']);
         Route::post('payments/simulate', [OrderController::class, 'simulatePayment']);
+        Route::post('payments/momo-verify', [OrderController::class, 'momoVerify']);
         Route::get('orders/{id}/status', [OrderController::class, 'checkStatus']);
         
         Route::get('orders', [OrderController::class, 'index']); // Lấy danh sách lịch sử

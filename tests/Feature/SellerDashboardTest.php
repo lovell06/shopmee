@@ -101,7 +101,7 @@ class SellerDashboardTest extends TestCase
         $customer = User::factory()->create();
 
         // 1. Delivered order belonging to seller shop
-        $order1 = Order::create([
+        $order1 = Order::factory()->create([
             'user_id' => $customer->id,
             'status' => OrderStatus::Delivered,
             'payment_status' => PaymentStatus::Paid,
@@ -115,7 +115,7 @@ class SellerDashboardTest extends TestCase
         ]);
 
         // 2. Another delivered order belonging to seller shop
-        $order2 = Order::create([
+        $order2 = Order::factory()->create([
             'user_id' => $customer->id,
             'status' => OrderStatus::Delivered,
             'payment_status' => PaymentStatus::Paid,
@@ -129,7 +129,7 @@ class SellerDashboardTest extends TestCase
         ]);
 
         // 3. Delivered order belonging to OTHER shop (should be excluded)
-        $order3 = Order::create([
+        $order3 = Order::factory()->create([
             'user_id' => $customer->id,
             'status' => OrderStatus::Delivered,
             'payment_status' => PaymentStatus::Paid,
@@ -143,7 +143,7 @@ class SellerDashboardTest extends TestCase
         ]);
 
         // 4. Non-delivered order belonging to seller shop (pending - should be excluded)
-        $order4 = Order::create([
+        $order4 = Order::factory()->create([
             'user_id' => $customer->id,
             'status' => OrderStatus::Pending,
             'payment_status' => PaymentStatus::Pending,
@@ -157,7 +157,7 @@ class SellerDashboardTest extends TestCase
         ]);
 
         // 5. Cancelled order belonging to seller shop (should be excluded)
-        $order5 = Order::create([
+        $order5 = Order::factory()->create([
             'user_id' => $customer->id,
             'status' => OrderStatus::Cancelled,
             'payment_status' => PaymentStatus::Failed,
@@ -199,7 +199,7 @@ class SellerDashboardTest extends TestCase
         $customer = User::factory()->create();
 
         // 1. Order inside range
-        $orderIn = Order::create([
+        $orderIn = Order::factory()->create([
             'user_id' => $customer->id,
             'status' => OrderStatus::Delivered,
             'payment_status' => PaymentStatus::Paid,
@@ -214,7 +214,7 @@ class SellerDashboardTest extends TestCase
         ]);
 
         // 2. Order outside range (older)
-        $orderOld = Order::create([
+        $orderOld = Order::factory()->create([
             'user_id' => $customer->id,
             'status' => OrderStatus::Delivered,
             'payment_status' => PaymentStatus::Paid,
@@ -229,7 +229,7 @@ class SellerDashboardTest extends TestCase
         ]);
 
         // 3. Order outside range (newer)
-        $orderNew = Order::create([
+        $orderNew = Order::factory()->create([
             'user_id' => $customer->id,
             'status' => OrderStatus::Delivered,
             'payment_status' => PaymentStatus::Paid,

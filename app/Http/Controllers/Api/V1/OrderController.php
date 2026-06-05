@@ -42,10 +42,35 @@ class OrderController extends Controller
                     'data'    => [
                         'order_id'       => $order->id,
                         'total_amount'   => (float)$order->total_amount,
-                        'payment_method' => $order->payment_method, // Hoặc $order->payment_method->value nếu có cast
+                        'payment_method' => $order->payment_method, 
                         'qr_simulation'  => "Vui lòng giả lập gửi tiền số tiền " . number_format($order->total_amount) . "đ với nội dung: SHOPMEE " . $order->id
                     ]
                 ], 201);
+            }
+
+            if ($validatedData['payment_method'] === \App\Enums\PaymentMethod::Momo->value) {
+                try {
+                    $momoService = app(\App\Services\MomoService::class);
+                    $payUrl = $momoService->createPaymentUrl($order);
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Đã thiết lập đơn hàng thành công! Đang chuyển hướng sang cổng thanh toán MoMo.',
+                        'data'    => [
+                            'order_id'       => $order->id,
+                            'total_amount'   => (float)$order->total_amount,
+                            'payment_method' => $order->payment_method,
+                            'payUrl'         => $payUrl
+                        ]
+                    ], 201);
+                } catch (Exception $e) {
+                    Log::error('Lỗi khi tạo giao dịch MoMo cho đơn hàng #' . $order->id . ': ' . $e->getMessage());
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Không thể kết nối tới cổng thanh toán MoMo: ' . $e->getMessage(),
+                        'order_id' => $order->id
+                    ], 400);
+                }
             }
         
             // Nhánh mặc định còn lại (Dành cho cash_on_delivery hoặc các hình thức khác)
@@ -142,5 +167,51 @@ class OrderController extends Controller
             $statusCode = in_array($e->getCode(), [400, 404]) ? $e->getCode() : 500;
             return response()->json(['success' => false, 'message' => $e->getMessage()], $statusCode);
         }
+    }
+
+    /**
+     * API Webhook nhận thông báo IPN từ MoMo
+     */
+    public function momoIpn(Request $request): \Illuminate\Http\Response|JsonResponse
+    {
+        Log::info('MoMo IPN Callback payload: ' . json_encode($request->all()));
+        
+        $momoService = app(\App\Services\MomoService::class);
+        
+        if (!$momoService->verifyCallbackSignature($request->all())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chữ ký MoMo không hợp lệ.'
+            ], 400);
+        }
+        
+        $momoService->processPaymentResult($request->all());
+        
+        return response()->noContent();
+    }
+
+    /**
+     * API Xác thực giao dịch MoMo từ phía client sau khi redirect
+     */
+    public function momoVerify(Request $request): JsonResponse
+    {
+        Log::info('MoMo Verify Client payload: ' . json_encode($request->all()));
+        
+        $momoService = app(\App\Services\MomoService::class);
+        
+        if (!$momoService->verifyCallbackSignature($request->all())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chữ ký MoMo không hợp lệ.'
+            ], 400);
+        }
+        
+        $success = $momoService->processPaymentResult($request->all());
+        
+        return response()->json([
+            'success' => $success,
+            'message' => $success ? 'Thanh toán MoMo thành công.' : 'Thanh toán MoMo thất bại hoặc bị hủy.',
+            'data' => $request->all()
+        ], 200);
     }
 }

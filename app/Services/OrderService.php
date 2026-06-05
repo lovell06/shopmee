@@ -11,6 +11,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\PaymentMethod;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Exception;
 
 class OrderService
@@ -134,7 +135,7 @@ class OrderService
         }
 
         // Kiểm tra nếu đơn hàng gửi lên không phải cấu hình là chuyển khoản ngân hàng ngân hàng
-        if ($order->payment_method === PaymentMethod::CashOnDelivery->value) { 
+        if ($order->payment_method === PaymentMethod::COD->value) { 
             throw new Exception('Đơn hàng này thanh toán bằng tiền mặt COD, không thể giả lập chuyển khoản.', 400);
         }
     
