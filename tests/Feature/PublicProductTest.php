@@ -95,4 +95,59 @@ class PublicProductTest extends TestCase
                 'message' => 'Sản phẩm không tồn tại.',
             ]);
     }
+
+    /**
+     * Test: Success searching products by keyword.
+     */
+    public function test_can_search_products_by_keyword(): void
+    {
+        $shop = Shop::factory()->create();
+        $category = Category::factory()->create();
+
+        $product1 = Product::factory()->create([
+            'shop_id' => $shop->id,
+            'category_id' => $category->id,
+            'name' => 'Special Coffee Cup',
+            'description' => 'A nice cup for your coffee.',
+            'status' => \App\Enums\ProductStatus::Active,
+        ]);
+
+        $product2 = Product::factory()->create([
+            'shop_id' => $shop->id,
+            'category_id' => $category->id,
+            'name' => 'Stainless Water Bottle',
+            'status' => \App\Enums\ProductStatus::Active,
+        ]);
+
+        // Create a hidden product to ensure it's not searched
+        $product3 = Product::factory()->create([
+            'shop_id' => $shop->id,
+            'category_id' => $category->id,
+            'name' => 'Secret Coffee Beans',
+            'status' => \App\Enums\ProductStatus::Hidden,
+        ]);
+
+        ProductVariant::factory()->create([
+            'product_id' => $product1->id,
+            'sku' => 'CUP-SP-001',
+        ]);
+        ProductVariant::factory()->create([
+            'product_id' => $product2->id,
+            'sku' => 'BTL-ST-999',
+        ]);
+
+        // 1. Search by name
+        $response = $this->getJson('/api/v1/products/search?q=Coffee');
+        $response->assertStatus(200);
+        $data = $response->json('data.data');
+        $this->assertCount(1, $data);
+        $this->assertEquals('Special Coffee Cup', $data[0]['name']);
+
+        // 2. Search by SKU
+        $response = $this->getJson('/api/v1/products/search?q=BTL-ST'); 
+        $response->assertStatus(200);
+        $data = $response->json('data.data');
+        $this->assertCount(1, $data);
+        $this->assertEquals('Stainless Water Bottle', $data[0]['name']);
+    }
 }

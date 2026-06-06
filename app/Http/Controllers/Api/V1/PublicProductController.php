@@ -8,6 +8,8 @@ use App\Http\Resources\Api\V1\ProductResource;
 use App\Http\Resources\Api\V1\ProductDetailResource;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use App\Models\Product;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
@@ -72,6 +74,56 @@ class PublicProductController extends Controller
                 'success' => false,
                 'message' => $statusCode === 404 ? $e->getMessage() : 'Hệ thống đang gặp sự cố. Vui lòng thử lại sau!'
             ], $statusCode);
+        }
+    }
+
+    /**
+     * Tìm kiếm sản phẩm công khai (Dành cho tất cả role)
+     * URL: GET /api/v1/products/search
+     */
+    public function search(Request $request): JsonResponse
+    {
+        try {
+            $searchTerm = $request->query('q', '');
+
+            // Khởi tạo truy vấn tìm kiếm các sản phẩm đang Active (Hoạt động)
+            $query = Product::query()
+                ->where('status', \App\Enums\ProductStatus::Active)
+                ->with(['variants', 'images']);
+
+            // Nếu người dùng có truyền từ khóa thì mới kích hoạt bộ lọc LIKE
+            if ($searchTerm !== '') {
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('name', 'LIKE', '%' . $searchTerm . '%')
+                      ->orWhere('description', 'LIKE', '%' . $searchTerm . '%')
+                      ->orWhereHas('variants', function ($qv) use ($searchTerm) {
+                          $qv->where('sku', 'LIKE', '%' . $searchTerm . '%')
+                            ->orWhere('variant_name', 'LIKE', '%' . $searchTerm . '%');
+                      })
+                      ->orWhereHas('category', function ($qc) use ($searchTerm) {
+                          $qc->where('name', 'LIKE', '%' . $searchTerm . '%');
+                      })
+                      ->orWhereHas('shop', function ($qs) use ($searchTerm) {
+                          $qs->where('name', 'LIKE', '%' . $searchTerm . '%');
+                      });
+                });
+            }
+
+            $limit = $request->query('limit', 15);
+            $products = $query->paginate($limit);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tìm kiếm sản phẩm thành công.',
+                'data'    => ProductResource::collection($products)->response()->getData(true)
+            ], 200);
+
+        } catch (Exception $e) {
+            Log::error('Lỗi khi tìm kiếm sản phẩm: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Hệ thống đang gặp sự cố. Vui lòng thử lại sau!'
+            ], 500);
         }
     }
 }
