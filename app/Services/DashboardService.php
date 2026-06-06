@@ -33,12 +33,15 @@ class DashboardService
             ->whereHas('order', function ($q) use ($filters) {
                 $q->where('status', OrderStatus::Delivered->value);
                 
-                if (!empty($filters['start_date'])) {
-                    $q->whereDate('created_at', '>=', $filters['start_date']);
+                $startDate = $filters['start_date'] ?? $filters['from_date'] ?? null;
+                $endDate = $filters['end_date'] ?? $filters['to_date'] ?? null;
+
+                if (!empty($startDate)) {
+                    $q->whereDate('created_at', '>=', $startDate);
                 }
                 
-                if (!empty($filters['end_date'])) {
-                    $q->whereDate('created_at', '<=', $filters['end_date']);
+                if (!empty($endDate)) {
+                    $q->whereDate('created_at', '<=', $endDate);
                 }
             });
 

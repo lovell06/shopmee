@@ -54,6 +54,14 @@ class AdminController extends Controller
                 $request->filled('status'),
                 fn ($query) => $query->where('status', $request->input('status'))
             )
+            ->when(
+                $request->input('start_date') ?? $request->input('from_date'),
+                fn ($query, $date) => $query->whereDate('created_at', '>=', $date)
+            )
+            ->when(
+                $request->input('end_date') ?? $request->input('to_date'),
+                fn ($query, $date) => $query->whereDate('created_at', '<=', $date)
+            )
             ->orderByDesc('created_at')
             ->paginate($request->integer('limit', 15))
             ->through(fn (Shop $shop) => [
@@ -106,6 +114,14 @@ class AdminController extends Controller
                         ->orWhere('email', 'like', '%' . $search . '%')
                         ->orWhere('phone', 'like', '%' . $search . '%');
                 })
+            )
+            ->when(
+                $request->input('start_date') ?? $request->input('from_date'),
+                fn ($query, $date) => $query->whereDate('created_at', '>=', $date)
+            )
+            ->when(
+                $request->input('end_date') ?? $request->input('to_date'),
+                fn ($query, $date) => $query->whereDate('created_at', '<=', $date)
             )
             ->orderByDesc('created_at')
             ->paginate($request->integer('limit', 15))
@@ -163,6 +179,14 @@ class AdminController extends Controller
                         ->orWhereHas('shop', fn ($shopQuery) => $shopQuery->where('name', 'like', '%' . $search . '%'))
                         ->orWhereHas('category', fn ($categoryQuery) => $categoryQuery->where('name', 'like', '%' . $search . '%'));
                 })
+            )
+            ->when(
+                $request->input('start_date') ?? $request->input('from_date'),
+                fn ($query, $date) => $query->whereDate('created_at', '>=', $date)
+            )
+            ->when(
+                $request->input('end_date') ?? $request->input('to_date'),
+                fn ($query, $date) => $query->whereDate('created_at', '<=', $date)
             )
             ->orderByDesc('created_at')
             ->paginate($request->integer('limit', 15))
@@ -301,6 +325,14 @@ class AdminController extends Controller
                     'items.productVariant.product',
                     fn ($subQuery) => $subQuery->where('shop_id', $request->integer('shop_id'))
                 )
+            )
+            ->when(
+                $request->input('start_date') ?? $request->input('from_date'),
+                fn ($query, $date) => $query->whereDate('created_at', '>=', $date)
+            )
+            ->when(
+                $request->input('end_date') ?? $request->input('to_date'),
+                fn ($query, $date) => $query->whereDate('created_at', '<=', $date)
             )
             ->orderByDesc('created_at')
             ->paginate($request->integer('limit', 15))

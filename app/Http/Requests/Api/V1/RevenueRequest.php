@@ -21,7 +21,9 @@ class RevenueRequest extends FormRequest
     {
         return [
             'start_date' => 'nullable|date|date_format:Y-m-d',
+            'from_date' => 'nullable|date|date_format:Y-m-d',
             'end_date' => 'nullable|date|date_format:Y-m-d|after_or_equal:start_date',
+            'to_date' => 'nullable|date|date_format:Y-m-d|after_or_equal:from_date',
         ];
     }
 }

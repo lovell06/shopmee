@@ -320,4 +320,47 @@ class AdminApiTest extends TestCase
             ->assertJsonPath('data.0.status', OrderStatus::Shipping->value)
             ->assertJsonPath('data.0.shop_ids.0', $shopA->id);
     }
+
+    public function test_admin_can_filter_orders_by_date(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $buyer = User::factory()->create();
+
+        // Order 1: Created yesterday
+        $order1 = Order::factory()->create([
+            'user_id' => $buyer->id,
+            'created_at' => now()->subDay(),
+        ]);
+
+        // Order 2: Created today
+        $order2 = Order::factory()->create([
+            'user_id' => $buyer->id,
+            'created_at' => now(),
+        ]);
+
+        // Order 3: Created tomorrow
+        $order3 = Order::factory()->create([
+            'user_id' => $buyer->id,
+            'created_at' => now()->addDay(),
+        ]);
+
+        // Filter for today only
+        $todayStr = now()->format('Y-m-d');
+        $response = $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/v1/admin/orders?start_date={$todayStr}&end_date={$todayStr}");
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $order2->id);
+
+        // Filter using from_date and to_date
+        $responseAlias = $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/v1/admin/orders?from_date={$todayStr}&to_date={$todayStr}");
+
+        $responseAlias->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $order2->id);
+    }
 }
