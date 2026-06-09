@@ -135,6 +135,17 @@ class ProductService
                 ]);
             }
 
+            if (!empty($data['images']) && is_array($data['images'])) {
+                foreach ($data['images'] as $imageFile) {
+                    if ($imageFile instanceof \Illuminate\Http\UploadedFile) {
+                        $path = $imageFile->store('products', 'public');
+                        $product->images()->create([
+                            'image' => $path,
+                        ]);
+                    }
+                }
+            }
+
             return $product;
         });
     }

@@ -9,6 +9,8 @@ use App\Models\ProductVariant;
 use App\Models\ProductImage;
 use App\Enums\ProductStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class SellerProductTest extends TestCase
@@ -297,6 +299,57 @@ class SellerProductTest extends TestCase
             'price' => '209000.00',
             'stock_quantity' => 30,
         ]);
+    }
+
+    /**
+     * Test: Success posting a new product with variants and images.
+     */
+    public function test_seller_can_create_product_with_images(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create();
+        $shop = Shop::factory()->create(['owner_id' => $user->id]);
+        $category = \App\Models\Category::factory()->create();
+
+        $file1 = UploadedFile::fake()->create('product1.jpg', 100, 'image/jpeg');
+        $file2 = UploadedFile::fake()->create('product2.png', 100, 'image/png');
+
+        $payload = [
+            'category_id' => $category->id,
+            'name' => 'Áo thun Polo Classic với Ảnh',
+            'description' => 'Mô tả chi tiết Áo thun Polo Classic với Ảnh',
+            'variants' => [
+                [
+                    'sku' => 'POLO-IMG-1',
+                    'variant_name' => 'White - M',
+                    'price' => 199000,
+                    'stock_quantity' => 50,
+                ],
+            ],
+            'images' => [
+                $file1,
+                $file2,
+            ],
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/products', $payload);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Đăng sản phẩm và tạo các biến thể thành công',
+            ]);
+
+        $product = Product::where('name', 'Áo thun Polo Classic với Ảnh')->first();
+        $this->assertNotNull($product);
+
+        $this->assertCount(2, $product->images);
+
+        foreach ($product->images as $image) {
+            Storage::disk('public')->assertExists($image->image);
+        }
     }
 
     /**
