@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use OpenApi\Attributes as OA;
 
 class PublicProductController extends Controller
 {
@@ -22,10 +23,34 @@ class PublicProductController extends Controller
         $this->productService = $productService;
     }
 
-    /**
-     * Xem danh sách sản phẩm CÔNG KHAI (Dành cho khách vãng lai / người mua)
-     * URL: GET /api/v1/products
-     */
+    #[OA\Get(
+        path: "/products",
+        summary: "Xem danh sách sản phẩm CÔNG KHAI",
+        description: "Lấy danh sách sản phẩm công khai hỗ trợ tìm kiếm, lọc theo giá, lọc theo danh mục, sắp xếp và phân trang.",
+        operationId: "getPublicProducts",
+        tags: ["Public Products"],
+        parameters: [
+            new OA\Parameter(name: "search", in: "query", description: "Từ khóa tìm kiếm theo tên sản phẩm", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "price_min", in: "query", description: "Giá tối thiểu", required: false, schema: new OA\Schema(type: "number")),
+            new OA\Parameter(name: "price_max", in: "query", description: "Giá tối đa", required: false, schema: new OA\Schema(type: "number")),
+            new OA\Parameter(name: "sort_by", in: "query", description: "Trường sắp xếp", required: false, schema: new OA\Schema(type: "string", enum: ["created_at", "price"])),
+            new OA\Parameter(name: "sort_dir", in: "query", description: "Hướng sắp xếp", required: false, schema: new OA\Schema(type: "string", enum: ["asc", "desc"])),
+            new OA\Parameter(name: "limit", in: "query", description: "Số lượng sản phẩm mỗi trang", required: false, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Lấy danh sách sản phẩm thành công."),
+                        new OA\Property(property: "data", type: "array", items: new OA\Items(type: "object"))
+                    ]
+                )
+            )
+        ]
+    )]
     public function index(ProductListRequest $request): JsonResponse
     {
         try {
@@ -50,10 +75,39 @@ class PublicProductController extends Controller
         }
     }
 
-    /**
-     * Xem thông tin chi tiết một sản phẩm theo ID (API công khai)
-     * URL: GET /api/v1/products/{id}
-     */
+    #[OA\Get(
+        path: "/products/{id}",
+        summary: "Xem chi tiết một sản phẩm theo ID",
+        description: "Lấy thông tin chi tiết của sản phẩm kèm các biến thể và danh sách hình ảnh.",
+        operationId: "getPublicProductById",
+        tags: ["Public Products"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", description: "ID của sản phẩm", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Lấy chi tiết sản phẩm thành công."),
+                        new OA\Property(property: "data", type: "object")
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Sản phẩm không tồn tại",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: false),
+                        new OA\Property(property: "message", type: "string", example: "Sản phẩm không tồn tại.")
+                    ]
+                )
+            )
+        ]
+    )]
     public function show(int $id): JsonResponse
     {
         try {
@@ -77,10 +131,30 @@ class PublicProductController extends Controller
         }
     }
 
-    /**
-     * Tìm kiếm sản phẩm công khai (Dành cho tất cả role)
-     * URL: GET /api/v1/products/search
-     */
+    #[OA\Get(
+        path: "/products/search",
+        summary: "Tìm kiếm sản phẩm nâng cao",
+        description: "Tìm kiếm sản phẩm theo tên, mô tả, biến thể, danh mục hoặc cửa hàng.",
+        operationId: "searchPublicProducts",
+        tags: ["Public Products"],
+        parameters: [
+            new OA\Parameter(name: "q", in: "query", description: "Từ khóa tìm kiếm", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "limit", in: "query", description: "Số lượng sản phẩm mỗi trang", required: false, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Tìm kiếm sản phẩm thành công."),
+                        new OA\Property(property: "data", type: "array", items: new OA\Items(type: "object"))
+                    ]
+                )
+            )
+        ]
+    )]
     public function search(Request $request): JsonResponse
     {
         try {

@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use OpenApi\Attributes as OA;
 
 class CartController extends Controller
 {
@@ -19,9 +20,44 @@ class CartController extends Controller
         $this->cartService = $cartService;
     }
 
-    /**
-     * API Thêm sản phẩm vào giỏ hàng
-     */
+    #[OA\Post(
+        path: "/cart/add",
+        summary: "Thêm sản phẩm vào giỏ hàng",
+        description: "Thêm sản phẩm/biến thể với số lượng mong muốn vào giỏ hàng của Buyer.",
+        operationId: "addToCart",
+        tags: ["Cart"],
+        security: [["bearerAuth" => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["product_variant_id", "quantity"],
+                properties: [
+                    new OA\Property(property: "product_variant_id", type: "integer", example: 1),
+                    new OA\Property(property: "quantity", type: "integer", example: 2)
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Đã thêm sản phẩm vào giỏ hàng thành công!")
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 400,
+                description: "Yêu cầu không hợp lệ (Ví dụ: Vượt quá số lượng tồn kho)"
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Không tìm thấy sản phẩm/biến thể"
+            )
+        ]
+    )]
     public function store(AddToCartRequest $request): JsonResponse
     {
         try {
@@ -53,10 +89,27 @@ class CartController extends Controller
         }
     }
 
-    /**
-    * API Xem danh sách giỏ hàng phân loại theo Shop
-    * URL: GET /api/v1/cart
-    */
+    #[OA\Get(
+        path: "/cart",
+        summary: "Xem danh sách giỏ hàng",
+        description: "Lấy danh sách các mặt hàng trong giỏ hàng của Buyer hiện tại, được phân nhóm theo Shop.",
+        operationId: "getCart",
+        tags: ["Cart"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Lấy danh sách giỏ hàng thành công."),
+                        new OA\Property(property: "data", type: "array", items: new OA\Items(type: "object"))
+                    ]
+                )
+            )
+        ]
+    )]
     public function index(): JsonResponse
     {
         try {

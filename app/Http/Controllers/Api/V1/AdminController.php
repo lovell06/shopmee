@@ -20,6 +20,7 @@ use App\Models\Product;
 use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use OpenApi\Attributes as OA;
 
 class AdminController extends Controller
 {
@@ -42,6 +43,34 @@ class AdminController extends Controller
         ], 403);
     }
 
+    #[OA\Get(
+        path: "/admin/shops",
+        summary: "Xem danh sách Shop",
+        description: "Lấy danh sách các cửa hàng trong hệ thống (dành cho Admin).",
+        operationId: "listShops",
+        tags: ["Admin"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "status", in: "query", description: "Trạng thái Shop", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "start_date", in: "query", description: "Từ ngày (Y-m-d)", required: false, schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "end_date", in: "query", description: "Đến ngày (Y-m-d)", required: false, schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "limit", in: "query", description: "Số lượng bản ghi trên trang", required: false, schema: new OA\Schema(type: "integer", default: 15))
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "data", type: "array", items: new OA\Items(type: "object")),
+                        new OA\Property(property: "meta", type: "object")
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: "Không có quyền Admin")
+        ]
+    )]
     public function listShops(AdminShopListRequest $request): JsonResponse
     {
         if ($response = $this->ensureAdminAccess()) {
@@ -88,6 +117,36 @@ class AdminController extends Controller
         ], 200);
     }
 
+    #[OA\Get(
+        path: "/admin/users",
+        summary: "Xem danh sách User",
+        description: "Lấy danh sách người dùng trong hệ thống (dành cho Admin).",
+        operationId: "listUsers",
+        tags: ["Admin"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "status", in: "query", description: "Trạng thái người dùng", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "role", in: "query", description: "Vai trò người dùng", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "search", in: "query", description: "Từ khóa tìm kiếm (Tên, email, số điện thoại)", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "start_date", in: "query", description: "Từ ngày (Y-m-d)", required: false, schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "end_date", in: "query", description: "Đến ngày (Y-m-d)", required: false, schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "limit", in: "query", description: "Số lượng bản ghi trên trang", required: false, schema: new OA\Schema(type: "integer", default: 15))
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "data", type: "array", items: new OA\Items(type: "object")),
+                        new OA\Property(property: "meta", type: "object")
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: "Không có quyền Admin")
+        ]
+    )]
     public function listUsers(AdminUserListRequest $request): JsonResponse
     {
         if ($response = $this->ensureAdminAccess()) {
@@ -148,6 +207,36 @@ class AdminController extends Controller
         ], 200);
     }
 
+    #[OA\Get(
+        path: "/admin/products",
+        summary: "Xem danh sách tất cả sản phẩm",
+        description: "Lấy danh sách tất cả sản phẩm toàn sàn (dành cho Admin).",
+        operationId: "listAdminProducts",
+        tags: ["Admin"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "status", in: "query", description: "Trạng thái sản phẩm", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "shop_id", in: "query", description: "Lọc theo ID Shop", required: false, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: "search", in: "query", description: "Từ khóa tìm kiếm sản phẩm", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "start_date", in: "query", description: "Từ ngày (Y-m-d)", required: false, schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "end_date", in: "query", description: "Đến ngày (Y-m-d)", required: false, schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "limit", in: "query", description: "Số lượng bản ghi trên trang", required: false, schema: new OA\Schema(type: "integer", default: 15))
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "data", type: "array", items: new OA\Items(type: "object")),
+                        new OA\Property(property: "meta", type: "object")
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: "Không có quyền Admin")
+        ]
+    )]
     public function listProducts(AdminProductListRequest $request): JsonResponse
     {
         if ($response = $this->ensureAdminAccess()) {
@@ -226,6 +315,40 @@ class AdminController extends Controller
         ], 200);
     }
 
+    #[OA\Patch(
+        path: "/admin/shops/{shop}/status",
+        summary: "Cập nhật trạng thái Shop",
+        description: "Phê duyệt hoạt động hoặc khóa Shop (dành cho Admin).",
+        operationId: "updateShopStatus",
+        tags: ["Admin"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "shop", in: "path", description: "ID của Shop", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["status"],
+                properties: [
+                    new OA\Property(property: "status", type: "string", enum: ["pending", "active", "rejected", "blocked"], example: "active")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Duyet shop thanh cong. Quyen han cua chu shop da duoc cap nhat.")
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: "Không có quyền Admin"),
+            new OA\Response(response: 404, description: "Không tìm thấy Shop")
+        ]
+    )]
     public function updateShopStatus(Shop $shop, AdminShopStatusRequest $request): JsonResponse
     {
         if ($response = $this->ensureAdminAccess()) {
@@ -258,6 +381,40 @@ class AdminController extends Controller
         ], 200);
     }
 
+    #[OA\Patch(
+        path: "/admin/users/{user}",
+        summary: "Cập nhật trạng thái người dùng",
+        description: "Khóa hoặc mở khóa hoạt động của người dùng (dành cho Admin).",
+        operationId: "updateUserStatus",
+        tags: ["Admin"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "user", in: "path", description: "ID của người dùng", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["status"],
+                properties: [
+                    new OA\Property(property: "status", type: "string", enum: ["active", "blocked"], example: "active")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Cap nhat trang thai nguoi dung thanh cong.")
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: "Không có quyền Admin"),
+            new OA\Response(response: 404, description: "Không tìm thấy người dùng")
+        ]
+    )]
     public function updateUserStatus(User $user, AdminUserStatusRequest $request): JsonResponse
     {
         if ($response = $this->ensureAdminAccess()) {
@@ -282,6 +439,41 @@ class AdminController extends Controller
         ], 200);
     }
 
+    #[OA\Patch(
+        path: "/admin/products/{product}",
+        summary: "Cập nhật trạng thái sản phẩm",
+        description: "Khóa hoặc phê duyệt hiển thị sản phẩm (dành cho Admin).",
+        operationId: "updateProductStatus",
+        tags: ["Admin"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "product", in: "path", description: "ID của sản phẩm", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["status"],
+                properties: [
+                    new OA\Property(property: "status", type: "string", enum: ["pending", "active", "hidden", "rejected"], example: "active"),
+                    new OA\Property(property: "admin_note", type: "string", example: "Sản phẩm vi phạm chính sách")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Trang thai san pham da duoc cap nhat thanh cong.")
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: "Không có quyền Admin"),
+            new OA\Response(response: 404, description: "Không tìm thấy sản phẩm")
+        ]
+    )]
     public function updateProductStatus(Product $product, AdminProductStatusRequest $request): JsonResponse
     {
         if ($response = $this->ensureAdminAccess()) {
@@ -307,6 +499,35 @@ class AdminController extends Controller
         ], 200);
     }
 
+    #[OA\Get(
+        path: "/admin/orders",
+        summary: "Xem danh sách tất cả đơn hàng",
+        description: "Lấy danh sách lịch sử tất cả các đơn đặt hàng toàn sàn (dành cho Admin).",
+        operationId: "listAdminOrders",
+        tags: ["Admin"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "status", in: "query", description: "Trạng thái đơn hàng", required: false, schema: new OA\Schema(type: "string")),
+            new OA\Parameter(name: "shop_id", in: "query", description: "Lọc theo ID Shop", required: false, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: "start_date", in: "query", description: "Từ ngày (Y-m-d)", required: false, schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "end_date", in: "query", description: "Đến ngày (Y-m-d)", required: false, schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "limit", in: "query", description: "Số lượng bản ghi trên trang", required: false, schema: new OA\Schema(type: "integer", default: 15))
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "data", type: "array", items: new OA\Items(type: "object")),
+                        new OA\Property(property: "meta", type: "object")
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: "Không có quyền Admin")
+        ]
+    )]
     public function listOrders(AdminOrderListRequest $request): JsonResponse
     {
         if ($response = $this->ensureAdminAccess()) {

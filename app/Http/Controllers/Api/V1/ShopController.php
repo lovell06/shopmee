@@ -8,6 +8,7 @@ use App\Services\ShopService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use OpenApi\Attributes as OA;
 
 class ShopController extends Controller
 {
@@ -19,6 +20,49 @@ class ShopController extends Controller
         $this->shopService = $shopService;
     }
 
+    #[OA\Post(
+        path: "/shops/register",
+        summary: "Đăng ký mở cửa hàng (Shop)",
+        description: "Đăng ký thông tin cửa hàng cho tài khoản hiện tại.",
+        operationId: "registerShop",
+        tags: ["Shops"],
+        security: [["bearerAuth" => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["name"],
+                properties: [
+                    new OA\Property(property: "name", type: "string", example: "Shop Quan Ao Dep"),
+                    new OA\Property(property: "description", type: "string", example: "Chuyên cung cấp quần áo thời trang"),
+                    new OA\Property(property: "logo_url", type: "string", example: "https://example.com/logo.png")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: "Đăng ký thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Đăng ký mở cửa hàng thành công!"),
+                        new OA\Property(
+                            property: "data",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "shop_id", type: "integer", example: 1),
+                                new OA\Property(property: "user_id", type: "integer", example: 1)
+                            ]
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 400,
+                description: "Yêu cầu không hợp lệ hoặc tài khoản đã có Shop"
+            )
+        ]
+    )]
     public function register(ShopRegisterRequest $request)
     {
         try {
