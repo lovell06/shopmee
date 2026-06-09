@@ -4,7 +4,7 @@ namespace App\Http\Requests\Api\V1\Admin;
 
 use App\Enums\ShopStatus;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Enum;
 
 class AdminShopStatusRequest extends FormRequest
 {
@@ -18,8 +18,7 @@ class AdminShopStatusRequest extends FormRequest
         return [
             'status' => [
                 'required',
-                'string',
-                Rule::in([ShopStatus::Active->value, ShopStatus::Rejected->value]),
+                new Enum(ShopStatus::class),
             ],
         ];
     }
