@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\AddToCartRequest;
+use App\Http\Requests\Api\V1\UpdateCartItemRequest;
+use App\Http\Requests\Api\V1\BulkRemoveCartItemsRequest;
 use App\Services\CartService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -130,6 +132,111 @@ class CartController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Không thể tải dữ liệu giỏ hàng lúc này.'
+            ], 500);
+        }
+    }
+
+    public function updateQuantity(UpdateCartItemRequest $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $this->cartService->updateCartItemQuantity(
+                $user->id,
+                $request->input('cart_item_id'),
+                $request->input('quantity')
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã cập nhật số lượng sản phẩm thành công!'
+            ], 200);
+
+        } catch (Exception $e) {
+            $statusCode = in_array($e->getCode(), [400, 404]) ? $e->getCode() : 500;
+            if ($statusCode === 500) {
+                Log::error('Lỗi API cập nhật giỏ hàng: ' . $e->getMessage());
+                $message = 'Không thể cập nhật giỏ hàng lúc này.';
+            } else {
+                $message = $e->getMessage();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message
+            ], $statusCode);
+        }
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $this->cartService->removeCartItem($user->id, $id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã xóa sản phẩm khỏi giỏ hàng!'
+            ], 200);
+
+        } catch (Exception $e) {
+            $statusCode = in_array($e->getCode(), [400, 404]) ? $e->getCode() : 500;
+            if ($statusCode === 500) {
+                Log::error('Lỗi API xóa sản phẩm giỏ hàng: ' . $e->getMessage());
+                $message = 'Không thể xóa sản phẩm khỏi giỏ hàng.';
+            } else {
+                $message = $e->getMessage();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message
+            ], $statusCode);
+        }
+    }
+
+    public function bulkDestroy(BulkRemoveCartItemsRequest $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $this->cartService->bulkRemoveCartItems($user->id, $request->input('cart_item_ids'));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã xóa các sản phẩm được chọn khỏi giỏ hàng!'
+            ], 200);
+
+        } catch (Exception $e) {
+            $statusCode = in_array($e->getCode(), [400, 404]) ? $e->getCode() : 500;
+            if ($statusCode === 500) {
+                Log::error('Lỗi API xóa hàng loạt giỏ hàng: ' . $e->getMessage());
+                $message = 'Không thể xóa các sản phẩm được chọn lúc này.';
+            } else {
+                $message = $e->getMessage();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message
+            ], $statusCode);
+        }
+    }
+
+    public function count(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $count = $this->cartService->getCartCount($user->id);
+
+            return response()->json([
+                'success' => true,
+                'count' => $count
+            ], 200);
+
+        } catch (Exception $e) {
+            Log::error('Lỗi API đếm giỏ hàng: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể lấy số lượng giỏ hàng lúc này.'
             ], 500);
         }
     }

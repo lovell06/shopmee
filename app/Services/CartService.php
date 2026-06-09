@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\ProductVariant;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -129,5 +130,88 @@ class CartService
         }
 
         return $result;
+    }
+
+    /**
+     * Cập nhật số lượng sản phẩm trong giỏ hàng
+     */
+    public function updateCartItemQuantity(string $userId, int $cartItemId, int $quantity): bool
+    {
+        // 1. Tìm CartItem kèm theo Cart để xác thực quyền sở hữu
+        $cartItem = CartItem::query()
+            ->where('id', $cartItemId)
+            ->whereHas('cart', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
+            ->first();
+
+        if (!$cartItem) {
+            throw new Exception('Sản phẩm không tồn tại trong giỏ hàng của bạn.', 404);
+        }
+
+        // 2. Kiểm tra tồn kho của biến thể sản phẩm
+        $variant = ProductVariant::query()->find($cartItem->product_variant_id);
+        if (!$variant) {
+            throw new Exception('Biến thể sản phẩm không tồn tại.', 404);
+        }
+
+        if ($variant->stock_quantity < $quantity) {
+            throw new Exception("Sản phẩm này chỉ còn {$variant->stock_quantity} cái trong kho, không đủ đáp ứng.", 400);
+        }
+
+        // 3. Cập nhật số lượng
+        $cartItem->quantity = $quantity;
+        return $cartItem->save();
+    }
+
+    /**
+     * Xóa sản phẩm khỏi giỏ hàng
+     */
+    public function removeCartItem(string $userId, int $cartItemId): bool
+    {
+        $cartItem = CartItem::query()
+            ->where('id', $cartItemId)
+            ->whereHas('cart', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
+            ->first();
+
+        if (!$cartItem) {
+            throw new Exception('Sản phẩm không tồn tại trong giỏ hàng của bạn.', 404);
+        }
+
+        return $cartItem->delete();
+    }
+
+    /**
+     * Xóa hàng loạt sản phẩm khỏi giỏ hàng
+     */
+    public function bulkRemoveCartItems(string $userId, array $cartItemIds): bool
+    {
+        // Tìm các cart items hợp lệ thuộc giỏ hàng của user này
+        $cartItems = CartItem::query()
+            ->whereIn('id', $cartItemIds)
+            ->whereHas('cart', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
+            ->get();
+
+        if ($cartItems->isEmpty()) {
+            throw new Exception('Không tìm thấy các sản phẩm hợp lệ trong giỏ hàng của bạn để xóa.', 404);
+        }
+
+        // Thực hiện xóa
+        return CartItem::destroy($cartItems->pluck('id')) > 0;
+    }
+
+    /**
+     * Lấy tổng số lượng sản phẩm trong giỏ hàng (Badge Count)
+     */
+    public function getCartCount(string $userId): int
+    {
+        return (int) DB::table('cart_items')
+            ->join('carts', 'cart_items.cart_id', '=', 'carts.id')
+            ->where('carts.user_id', $userId)
+            ->sum('cart_items.quantity');
     }
 }

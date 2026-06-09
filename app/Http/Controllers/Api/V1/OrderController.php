@@ -62,11 +62,28 @@ class OrderController extends Controller
     {
         try {
             $userId = Auth::id();
-            // 1. Lấy ra mảng dữ liệu đã qua bộ lọc validate của CheckoutRequest
             $validatedData = $request->validated();
             
-            // 2. Tiến hành gọi dịch vụ xử lý đặt hàng
-            $order = $this->orderService->processCheckout($userId, $validatedData);
+            // Thực hiện cả tạo đơn hàng và tạo link MoMo trong cùng 1 Transaction để đảm bảo tính toàn vẹn dữ liệu
+            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($userId, $validatedData) {
+                // 1. Tiến hành gọi dịch vụ xử lý đặt hàng (tạo đơn, trừ kho, xóa giỏ)
+                $order = $this->orderService->processCheckout($userId, $validatedData);
+                
+                $payUrl = null;
+                // 2. Gọi cổng thanh toán MoMo ngay trong transaction nếu chọn thanh toán qua ví
+                if ($validatedData['payment_method'] === \App\Enums\PaymentMethod::Momo->value) {
+                    $momoService = app(\App\Services\MomoService::class);
+                    $payUrl = $momoService->createPaymentUrl($order);
+                }
+                
+                return [
+                    'order' => $order,
+                    'payUrl' => $payUrl
+                ];
+            });
+
+            $order = $result['order'];
+            $payUrl = $result['payUrl'];
         
             // So sánh trực tiếp giá trị chuỗi gửi lên từ Request cho 
             if ($validatedData['payment_method'] === \App\Enums\PaymentMethod::BankTransfer->value) { 
@@ -83,28 +100,16 @@ class OrderController extends Controller
             }
 
             if ($validatedData['payment_method'] === \App\Enums\PaymentMethod::Momo->value) {
-                try {
-                    $momoService = app(\App\Services\MomoService::class);
-                    $payUrl = $momoService->createPaymentUrl($order);
-
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Đã thiết lập đơn hàng thành công! Đang chuyển hướng sang cổng thanh toán MoMo.',
-                        'data'    => [
-                            'order_id'       => $order->id,
-                            'total_amount'   => (float)$order->total_amount,
-                            'payment_method' => $order->payment_method,
-                            'payUrl'         => $payUrl
-                        ]
-                    ], 201);
-                } catch (Exception $e) {
-                    Log::error('Lỗi khi tạo giao dịch MoMo cho đơn hàng #' . $order->id . ': ' . $e->getMessage());
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Không thể kết nối tới cổng thanh toán MoMo: ' . $e->getMessage(),
-                        'order_id' => $order->id
-                    ], 400);
-                }
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Đã thiết lập đơn hàng thành công! Đang chuyển hướng sang cổng thanh toán MoMo.',
+                    'data'    => [
+                        'order_id'       => $order->id,
+                        'total_amount'   => (float)$order->total_amount,
+                        'payment_method' => $order->payment_method,
+                        'payUrl'         => $payUrl
+                    ]
+                ], 201);
             }
         
             // Nhánh mặc định còn lại (Dành cho cash_on_delivery hoặc các hình thức khác)

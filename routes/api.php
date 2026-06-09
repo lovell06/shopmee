@@ -36,9 +36,13 @@ Route::prefix('v1')->group(function () {
         Route::patch('seller/orders/{id}', [SellerOrderController::class, 'updateStatus']);
         Route::get('seller/dashboard/revenue', [SellerDashboardController::class, 'revenue']);
         Route::post('products', [ProductController::class, 'store']);
-        // API Thêm vào giỏ hàng 
+        // API giỏ hàng 
         Route::post('cart/add', [CartController::class, 'store']);
         Route::get('cart', [CartController::class, 'index']);
+        Route::put('cart/update', [CartController::class, 'updateQuantity']);
+        Route::delete('cart/{id}', [CartController::class, 'destroy']);
+        Route::post('cart/bulk-delete', [CartController::class, 'bulkDestroy']);
+        Route::get('cart/count', [CartController::class, 'count']);
         // Hệ thống API quản lý sổ địa chỉ
         Route::get('addresses', [AddressController::class, 'index']);       // Lấy danh sách
         Route::post('addresses/add', [AddressController::class, 'store']);      // Thêm mới

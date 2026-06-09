@@ -26,9 +26,10 @@ class CheckoutRequest extends FormRequest
     {
         return [
             'user_address_id' => 'required|exists:user_addresses,id',
-            // Kiểm tra phương thức thanh toán phải nằm trong danh sách các giá trị Enum của bạn
             'payment_method'  => ['required', Rule::in(PaymentMethod::values())],
-            'description'     => 'nullable|string|max:2000'
+            'description'     => 'nullable|string|max:2000',
+            'cart_item_ids'   => 'nullable|array',
+            'cart_item_ids.*' => 'integer|exists:cart_items,id',
         ];
     }
 

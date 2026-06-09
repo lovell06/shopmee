@@ -64,23 +64,33 @@ class OrderService
     {
         return DB::transaction(function () use ($userId, $data) {
             // 1. Tìm giỏ hàng hiện tại của người dùng
-            $cart = Cart::query()->where('user_id', $userId)->with('items.productVariant')->first();
-            if (!$cart || $cart->items->isEmpty()) {
+            $cart = Cart::query()->where('user_id', $userId)->first();
+            if (!$cart) {
                 throw new Exception('Không thể thanh toán do giỏ hàng của bạn đang trống.', 400);
+            }
+
+            // Lọc ra các sản phẩm được chọn thanh toán nếu frontend có gửi lên danh sách ID
+            $query = CartItem::query()->where('cart_id', $cart->id)->with('productVariant');
+            if (!empty($data['cart_item_ids'])) {
+                $query->whereIn('id', $data['cart_item_ids']);
+            }
+            $cartItems = $query->get();
+
+            if ($cartItems->isEmpty()) {
+                throw new Exception('Không thể thanh toán do không có sản phẩm nào được chọn.', 400);
             }
 
             $totalAmount = 0;
             $itemsToInsert = [];
 
-            // 2. Duyệt giỏ hàng kiểm tra tồn kho và gom tiền
-            foreach ($cart->items as $item) {
+            // 2. Duyệt qua danh sách sản phẩm được chọn để kiểm tra tồn kho và gom tiền
+            foreach ($cartItems as $item) {
                 $variant = $item->productVariant;
 
                 if ($variant->stock_quantity < $item->quantity) {
                     throw new Exception("Sản phẩm '{$variant->variant_name}' trong kho không đủ số lượng đáp ứng.", 400);
                 }
 
-                // unit_price khớp với cột decimal(18,2) trong migration order_items của bạn
                 $itemSubtotal = $variant->price * $item->quantity; 
                 $totalAmount += $itemSubtotal;
 
@@ -117,8 +127,8 @@ class OrderService
                 $itemData['variant_model']->decrement('stock_quantity', $itemData['quantity'], []);
             }
 
-            // 5. Xóa sạch giỏ hàng sau khi checkout thành công
-            CartItem::query()->where('cart_id', $cart->id)->delete();
+            // 5. Chỉ xóa các sản phẩm được chọn thanh toán khỏi giỏ hàng
+            CartItem::query()->whereIn('id', $cartItems->pluck('id'))->delete();
 
             return $order;
         });
