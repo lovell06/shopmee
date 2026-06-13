@@ -168,7 +168,7 @@ class OrderService
     {
         return Order::query()
             ->where('user_id', $userId)
-            ->with(['items.productVariant.product']) // Eager load để lấy tên/ảnh sản phẩm ở Frontend
+            ->with(['items.productVariant.product.images', 'items.productVariant.product.shop']) // Eager load để lấy tên/ảnh/shop sản phẩm ở Frontend
             ->orderByDesc('created_at') // Đơn hàng mới nhất xếp lên đầu
             ->get();
     }
