@@ -817,6 +817,125 @@
                 ]
             }
         },
+        "/admin/revenue": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Xem thống kê doanh thu nền tảng của Admin",
+                "description": "Lấy tổng doanh thu toàn sàn và hoa hồng admin (5%) theo mốc thời gian.",
+                "operationId": "getAdminRevenue",
+                "parameters": [
+                    {
+                        "name": "shop_id",
+                        "in": "query",
+                        "description": "ID Shop để lọc doanh thu",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "start_date",
+                        "in": "query",
+                        "description": "Từ ngày (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end_date",
+                        "in": "query",
+                        "description": "Đến ngày (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "from_date",
+                        "in": "query",
+                        "description": "Ngày bắt đầu thay thế (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to_date",
+                        "in": "query",
+                        "description": "Ngày kết thúc thay thế (Y-m-d)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "total_revenue": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 1000000
+                                                },
+                                                "total_admin_commission": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 50000
+                                                },
+                                                "commission_rate": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 0.05
+                                                },
+                                                "total_orders_completed": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "total_products_sold": {
+                                                    "type": "integer",
+                                                    "example": 50
+                                                },
+                                                "currency": {
+                                                    "type": "string",
+                                                    "example": "VND"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Không có quyền Admin"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/admin/orders": {
             "get": {
                 "tags": [
