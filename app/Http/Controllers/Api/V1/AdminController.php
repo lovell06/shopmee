@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\Api\V1\Admin\AdminOrderListRequest;
 use App\Http\Requests\Api\V1\Admin\AdminProductListRequest;
 use App\Http\Requests\Api\V1\Admin\AdminProductStatusRequest;
+use App\Http\Requests\Api\V1\Admin\AdminRevenueRequest;
 use App\Http\Requests\Api\V1\Admin\AdminShopListRequest;
 use App\Http\Requests\Api\V1\Admin\AdminShopStatusRequest;
 use App\Http\Requests\Api\V1\Admin\AdminUserListRequest;
@@ -19,11 +20,19 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Shop;
 use App\Models\User;
+use App\Services\DashboardService;
 use Illuminate\Http\JsonResponse;
 use OpenApi\Attributes as OA;
 
 class AdminController extends Controller
 {
+    protected DashboardService $dashboardService;
+
+    public function __construct(DashboardService $dashboardService)
+    {
+        $this->dashboardService = $dashboardService;
+    }
+
     private function ensureAdminAccess(): ?JsonResponse
     {
         $user = Auth::user();
@@ -496,6 +505,59 @@ class AdminController extends Controller
                 'product_id' => $product->id,
                 'status' => $product->status->value,
             ],
+        ], 200);
+    }
+
+    #[OA\Get(
+        path: "/admin/revenue",
+        summary: "Xem thống kê doanh thu nền tảng của Admin",
+        description: "Lấy tổng doanh thu toàn sàn và hoa hồng admin (5%) theo mốc thời gian.",
+        operationId: "getAdminRevenue",
+        tags: ["Admin"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "shop_id", in: "query", description: "ID Shop để lọc doanh thu", required: false, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: "start_date", in: "query", description: "Từ ngày (Y-m-d)", required: false, schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "end_date", in: "query", description: "Đến ngày (Y-m-d)", required: false, schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "from_date", in: "query", description: "Ngày bắt đầu thay thế (Y-m-d)", required: false, schema: new OA\Schema(type: "string", format: "date")),
+            new OA\Parameter(name: "to_date", in: "query", description: "Ngày kết thúc thay thế (Y-m-d)", required: false, schema: new OA\Schema(type: "string", format: "date")),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(
+                            property: "data",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "total_revenue", type: "number", format: "float", example: 1000000),
+                                new OA\Property(property: "total_admin_commission", type: "number", format: "float", example: 50000),
+                                new OA\Property(property: "commission_rate", type: "number", format: "float", example: 0.05),
+                                new OA\Property(property: "total_orders_completed", type: "integer", example: 10),
+                                new OA\Property(property: "total_products_sold", type: "integer", example: 50),
+                                new OA\Property(property: "currency", type: "string", example: "VND"),
+                            ]
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: "Không có quyền Admin")
+        ]
+    )]
+    public function revenue(AdminRevenueRequest $request): JsonResponse
+    {
+        if ($response = $this->ensureAdminAccess()) {
+            return $response;
+        }
+
+        $data = $this->dashboardService->getAdminRevenue($request->validated());
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
         ], 200);
     }
 

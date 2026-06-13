@@ -363,4 +363,108 @@ class AdminApiTest extends TestCase
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('data.0.id', $order2->id);
     }
+
+    public function test_admin_can_get_platform_revenue_with_commission(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $buyer = User::factory()->create();
+        $shop = Shop::factory()->create();
+        $product = Product::factory()->create(['shop_id' => $shop->id]);
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'price' => 100000,
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $buyer->id,
+            'status' => OrderStatus::Delivered,
+            'payment_status' => PaymentStatus::Paid,
+            'payment_method' => PaymentMethod::COD,
+        ]);
+
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'product_variant_id' => $variant->id,
+            'quantity' => 2,
+            'unit_price' => 100000,
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/revenue?shop_id=' . $shop->id);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.total_revenue', '200000.00')
+            ->assertJsonPath('data.total_admin_commission', '10000.00')
+            ->assertJsonPath('data.commission_rate', 0.05)
+            ->assertJsonPath('data.total_orders_completed', 1)
+            ->assertJsonPath('data.total_products_sold', 2)
+            ->assertJsonPath('data.currency', 'VND');
+    }
+
+    public function test_admin_revenue_includes_shop_breakdown(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $buyer = User::factory()->create();
+
+        $shopA = Shop::factory()->create(['name' => 'Shop A']);
+        $shopB = Shop::factory()->create(['name' => 'Shop B']);
+
+        $productA = Product::factory()->create(['shop_id' => $shopA->id]);
+        $productB = Product::factory()->create(['shop_id' => $shopB->id]);
+
+        $variantA = ProductVariant::factory()->create(['product_id' => $productA->id, 'price' => 100000]);
+        $variantB = ProductVariant::factory()->create(['product_id' => $productB->id, 'price' => 50000]);
+
+        $orderA = Order::factory()->create([
+            'user_id' => $buyer->id,
+            'status' => OrderStatus::Delivered,
+            'payment_status' => PaymentStatus::Paid,
+            'payment_method' => PaymentMethod::COD,
+        ]);
+
+        $orderB = Order::factory()->create([
+            'user_id' => $buyer->id,
+            'status' => OrderStatus::Delivered,
+            'payment_status' => PaymentStatus::Paid,
+            'payment_method' => PaymentMethod::COD,
+        ]);
+
+        OrderItem::factory()->create([
+            'order_id' => $orderA->id,
+            'product_variant_id' => $variantA->id,
+            'quantity' => 2,
+            'unit_price' => 100000,
+        ]);
+
+        OrderItem::factory()->create([
+            'order_id' => $orderB->id,
+            'product_variant_id' => $variantB->id,
+            'quantity' => 3,
+            'unit_price' => 50000,
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/admin/revenue');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.shops', true)
+            ->assertJsonFragment([
+                'shop_id' => $shopA->id,
+                'shop_name' => 'Shop A',
+                'total_revenue' => '200000.00',
+                'total_admin_commission' => '10000.00',
+                'total_orders_completed' => 1,
+                'total_products_sold' => 2,
+            ])
+            ->assertJsonFragment([
+                'shop_id' => $shopB->id,
+                'shop_name' => 'Shop B',
+                'total_revenue' => '150000.00',
+                'total_admin_commission' => '7500.00',
+                'total_orders_completed' => 1,
+                'total_products_sold' => 3,
+            ]);
+    }
 }

@@ -65,6 +65,7 @@ Route::prefix('v1')->group(function () {
             Route::patch('users/{user}', [AdminController::class, 'updateUserStatus']);
             Route::patch('products/{product}', [AdminController::class, 'updateProductStatus']);
             Route::get('orders', [AdminController::class, 'listOrders']);
+            Route::get('revenue', [AdminController::class, 'revenue']);
         });
     });
 });
