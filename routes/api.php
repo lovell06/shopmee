@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\PublicProductController;
+use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ShopController;
 use App\Http\Controllers\Api\V1\SellerOrderController;
 use App\Http\Controllers\Api\V1\SellerDashboardController;
@@ -20,6 +21,7 @@ Route::prefix('v1')->group(function () {
     Route::get('products', [PublicProductController::class, 'index']);
     Route::get('products/search', [PublicProductController::class, 'search']);
     Route::get('products/{id}', [PublicProductController::class, 'show']);
+    Route::get('categories', [CategoryController::class, 'index']);
     Route::post('register', [AuthController::class, 'register']);
     Route::post('register/verify', [AuthController::class, 'verify']);
     // Luồng Quên mật khẩu trọn gói của bạn
