@@ -65,6 +65,12 @@ class GeminiService implements ChatbotServiceInterface
                 'body'   => $response->body()
             ]);
             
+            // Nếu lỗi do API Key không hợp lệ, trả về thông báo trực quan trên UI
+            $errorMsg = $response->json('error.message');
+            if ($response->status() === 400 && str_contains($errorMsg, 'API key not valid')) {
+                return '⚠️ Khóa API Gemini hiện tại trong tệp .env không hợp lệ (API key not valid). Vui lòng kiểm tra và cấu hình lại khóa chính xác.';
+            }
+
             return null;
 
         } catch (\Exception $e) {
