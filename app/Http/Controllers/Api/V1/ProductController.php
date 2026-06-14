@@ -68,6 +68,8 @@ class ProductController extends Controller
                 'data' => $products->map(fn($product) => [
                     'id' => $product->id,
                     'name' => $product->name,
+                    'category_id' => $product->category_id,
+                    'description' => $product->description,
                     'status' => $product->status->value,
                     'created_at' => $product->created_at->format('Y-m-d H:i:s'),
                     'variants' => $product->variants->map(fn($variant) => [

@@ -179,29 +179,70 @@ class ProductService
             throw new Exception('Bạn không có quyền chỉnh sửa sản phẩm này', 403);
         }
 
-        // 4. Kiểm tra xem tất cả các variant id truyền lên có thuộc về sản phẩm này hay không
+        // 4. Kiểm tra xem tất cả các variant id truyền lên (nếu có) có thuộc về sản phẩm này hay không
         $productVariantIds = $product->variants()->pluck('id')->toArray();
+        $inputVariantIds = [];
         foreach ($data['variants'] as $variantData) {
-            if (!in_array($variantData['id'], $productVariantIds)) {
-                throw new Exception('Biến thể không hợp lệ cho sản phẩm này.', 400);
+            if (!empty($variantData['id'])) {
+                if (!in_array($variantData['id'], $productVariantIds)) {
+                    throw new Exception('Biến thể không hợp lệ cho sản phẩm này.', 400);
+                }
+                $inputVariantIds[] = (int)$variantData['id'];
             }
         }
 
         // 5. Thực hiện cập nhật trong database transaction
-        return DB::transaction(function () use ($product, $data) {
+        return DB::transaction(function () use ($product, $data, $inputVariantIds) {
             $product->update([
                 'category_id' => $data['category_id'],
                 'name' => $data['name'],
                 'description' => $data['description'],
             ]);
 
+            // Xóa các biến thể không còn trong danh sách gửi lên
+            $product->variants()->whereNotIn('id', $inputVariantIds)->delete();
+
             foreach ($data['variants'] as $variantData) {
-                $product->variants()->where('id', $variantData['id'])->update([
-                    'sku' => $variantData['sku'],
-                    'variant_name' => $variantData['variant_name'],
-                    'price' => $variantData['price'],
-                    'stock_quantity' => $variantData['stock_quantity'],
-                ]);
+                if (!empty($variantData['id'])) {
+                    // Cập nhật biến thể hiện có
+                    $product->variants()->where('id', $variantData['id'])->update([
+                        'sku' => $variantData['sku'],
+                        'variant_name' => $variantData['variant_name'],
+                        'price' => $variantData['price'],
+                        'stock_quantity' => $variantData['stock_quantity'],
+                    ]);
+                } else {
+                    // Tạo mới biến thể
+                    $product->variants()->create([
+                        'sku' => $variantData['sku'],
+                        'variant_name' => $variantData['variant_name'],
+                        'price' => $variantData['price'],
+                        'stock_quantity' => $variantData['stock_quantity'],
+                    ]);
+                }
+            }
+
+            // Xóa ảnh cũ được đánh dấu
+            if (!empty($data['deleted_image_ids']) && is_array($data['deleted_image_ids'])) {
+                foreach ($data['deleted_image_ids'] as $imageId) {
+                    $image = $product->images()->where('id', $imageId)->first();
+                    if ($image) {
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete($image->image);
+                        $image->delete();
+                    }
+                }
+            }
+
+            // Lưu các ảnh mới tải lên
+            if (!empty($data['images']) && is_array($data['images'])) {
+                foreach ($data['images'] as $imageFile) {
+                    if ($imageFile instanceof \Illuminate\Http\UploadedFile) {
+                        $path = $imageFile->store('products', 'public');
+                        $product->images()->create([
+                            'image' => $path,
+                        ]);
+                    }
+                }
             }
 
             return $product->fresh();

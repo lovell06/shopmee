@@ -464,6 +464,94 @@ class SellerProductTest extends TestCase
     }
 
     /**
+     * Test: Success updating a product by creating, updating, and deleting variants.
+     */
+    public function test_seller_can_create_update_and_delete_variants_during_product_update(): void
+    {
+        $user = User::factory()->create();
+        $shop = Shop::factory()->create(['owner_id' => $user->id]);
+        $category = \App\Models\Category::factory()->create();
+
+        $product = Product::factory()->create([
+            'shop_id' => $shop->id,
+            'category_id' => $category->id,
+            'name' => 'Original Name',
+            'description' => 'Original Description',
+        ]);
+
+        $variantToKeep = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'sku' => 'KEEP-SKU',
+            'variant_name' => 'Keep Variant',
+            'price' => 100000.00,
+            'stock_quantity' => 10,
+        ]);
+
+        $variantToDelete = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'sku' => 'DEL-SKU',
+            'variant_name' => 'Delete Variant',
+            'price' => 200000.00,
+            'stock_quantity' => 20,
+        ]);
+
+        $payload = [
+            'category_id' => $category->id,
+            'name' => 'Original Name',
+            'description' => 'Original Description',
+            'variants' => [
+                // Keep and update one
+                [
+                    'id' => $variantToKeep->id,
+                    'sku' => 'KEEP-SKU-UPDATED',
+                    'variant_name' => 'Keep Variant Updated',
+                    'price' => 150000,
+                    'stock_quantity' => 12,
+                ],
+                // Add a new one (no id)
+                [
+                    'sku' => 'NEW-SKU',
+                    'variant_name' => 'New Variant Added',
+                    'price' => 99000,
+                    'stock_quantity' => 30,
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->putJson("/api/v1/seller/products/{$product->id}", $payload);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Cập nhật thông tin sản phẩm và biến thể thành công',
+            ]);
+
+        // Assert the variant to keep was updated
+        $this->assertDatabaseHas('product_variants', [
+            'id' => $variantToKeep->id,
+            'sku' => 'KEEP-SKU-UPDATED',
+            'variant_name' => 'Keep Variant Updated',
+            'price' => '150000.00',
+            'stock_quantity' => 12,
+        ]);
+
+        // Assert the new variant was created
+        $this->assertDatabaseHas('product_variants', [
+            'product_id' => $product->id,
+            'sku' => 'NEW-SKU',
+            'variant_name' => 'New Variant Added',
+            'price' => '99000.00',
+            'stock_quantity' => 30,
+        ]);
+
+        // Assert the variant to delete was deleted
+        $this->assertDatabaseMissing('product_variants', [
+            'id' => $variantToDelete->id,
+        ]);
+    }
+
+    /**
      * Test: Seller cannot update another shop's product.
      */
     public function test_seller_cannot_update_product_of_another_shop(): void
