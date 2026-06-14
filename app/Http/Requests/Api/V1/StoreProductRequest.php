@@ -16,6 +16,18 @@ class StoreProductRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->variants)) {
+            $this->merge([
+                'variants' => json_decode($this->variants, true),
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
