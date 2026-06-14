@@ -35,3 +35,8 @@ Mỗi khi bạn viết mới hoặc cập nhật các Annotation (chú thích) t
 ```Bash
 php artisan l5-swagger:generate
 ```
+
+4.Chạy lệnh để xuất hình ảnh
+```Bash
+php artisan storage:link
+```
