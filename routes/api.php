@@ -30,9 +30,8 @@ Route::prefix('v1')->group(function () {
     // Webhook IPN của MoMo (Không qua auth vì do MoMo Server gọi đến)
     Route::post('payments/momo-ipn', [OrderController::class, 'momoIpn']);
 
-    Route::post('chat/gemini', [ChatController::class, 'ask']);
-
     Route::middleware('auth:sanctum')->group(function () {
+        Route::post('chat/gemini', [ChatController::class, 'ask']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::post('shops/register', [ShopController::class, 'register']);
         Route::get('seller/products', [ProductController::class, 'index']);

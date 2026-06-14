@@ -10,5 +10,5 @@ interface ChatbotServiceInterface
      * @param string $prompt
      * @return string|null
      */
-    public function sendMessage(string $prompt): ?string;
+    public function sendMessage(string $prompt, ?string $systemInstruction = null): ?string;
 }

@@ -19,7 +19,7 @@ class GeminiService implements ChatbotServiceInterface
         $this->model   = config('services.gemini.model');
     }
 
-    public function sendMessage(string $prompt): ?string
+    public function sendMessage(string $prompt, ?string $systemInstruction = null): ?string
     {
         if (empty($this->apiKey)) {
             Log::error('Gemini Service: API key is not configured in .env (GEMINI_API_KEY).');
@@ -44,6 +44,14 @@ class GeminiService implements ChatbotServiceInterface
                 ]
             ]
         ];
+
+        if (!empty($systemInstruction)) {
+            $payload['systemInstruction'] = [
+                'parts' => [
+                    ['text' => $systemInstruction]
+                ]
+            ];
+        }
 
         try {
             // Thực hiện POST Request với thiết lập Timeout 
