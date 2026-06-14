@@ -18,7 +18,7 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Administrator',
                 'phone' => '0987654321',
-                'password' => Hash::make('123456'), // Laravel sẽ tự động hash Bcrypt ở đây
+                'password' => Hash::make('12345678'), // Laravel sẽ tự động hash Bcrypt ở đây
                 'role' => UserRole::Admin,
                 'status' => UserStatus::Active,
             ]
