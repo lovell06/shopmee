@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use App\Enums\UserRole;
+use App\Enums\UserStatus;
 use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
@@ -15,8 +17,10 @@ class AdminUserSeeder extends Seeder
             ['email' => 'admin@admin.com'], // Điều kiện tìm kiếm
             [
                 'name' => 'Administrator',
+                'phone' => '0987654321',
                 'password' => Hash::make('123456'), // Laravel sẽ tự động hash Bcrypt ở đây
-                'role' => 'admin' // Thay đổi tùy theo cấu hình phân quyền của bạn
+                'role' => UserRole::Admin,
+                'status' => UserStatus::Active,
             ]
         );
     }
