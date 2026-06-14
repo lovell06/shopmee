@@ -24,8 +24,8 @@ class ShopRegisterRequest extends FormRequest
     {
         return [
             'name' => 'required|string|unique:shops,name|max:255', // Tên shop không được trùng
-            'description' => 'nullable|required|string|max:2000', // Mô tả về shop
-            'logo_url' => 'nullable|required|string', // Đường dẫn file logo
+            'description' => 'nullable|string|max:2000', // Mô tả về shop
+            'logo' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048', // File ảnh logo upload từ máy
         ];
     }
 }

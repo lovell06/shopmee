@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
+
 class Shop extends Model
 {
     use HasFactory, SoftDeletes;
@@ -29,6 +31,16 @@ class Shop extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    /**
+     * Tự động chuyển đổi logo_url thành URL đầy đủ nếu lưu dạng path cục bộ
+     */
+    protected function logoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ? (str_starts_with($value, 'http') ? $value : asset('storage/' . $value)) : null,
+        );
+    }
 
     public function owner(): BelongsTo
     {

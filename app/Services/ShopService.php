@@ -19,12 +19,18 @@ class ShopService
             throw new Exception('Bạn đã đăng ký hoặc đã sở hữu một cửa hàng.', 400);
         }
 
-        // 2. Thực hiện tạo Shop trong Database
+        // 2. Lưu ảnh logo từ máy lên thư mục storage/logos
+        $logoPath = null;
+        if (isset($data['logo']) && $data['logo'] instanceof \Illuminate\Http\UploadedFile) {
+            $logoPath = $data['logo']->store('logos', 'public');
+        }
+
+        // 3. Thực hiện tạo Shop trong Database
         return Shop::create([
             'owner_id'     => $userId,
-            'name'        => $data['name'],
-            'description' => $data['description'] ?? null,
-            'logo_url'        => $data['logo'] ?? null,
+            'name'         => $data['name'],
+            'description'  => $data['description'] ?? null,
+            'logo_url'     => $logoPath,
         ]);
     }
 }

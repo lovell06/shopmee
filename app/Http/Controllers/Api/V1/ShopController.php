@@ -29,13 +29,16 @@ class ShopController extends Controller
         security: [["bearerAuth" => []]],
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(
-                required: ["name"],
-                properties: [
-                    new OA\Property(property: "name", type: "string", example: "Shop Quan Ao Dep"),
-                    new OA\Property(property: "description", type: "string", example: "Chuyên cung cấp quần áo thời trang"),
-                    new OA\Property(property: "logo_url", type: "string", example: "https://example.com/logo.png")
-                ]
+            content: new OA\MediaType(
+                mediaType: "multipart/form-data",
+                schema: new OA\Schema(
+                    required: ["name", "logo"],
+                    properties: [
+                        new OA\Property(property: "name", type: "string", example: "Shop Quan Ao Dep"),
+                        new OA\Property(property: "description", type: "string", example: "Chuyên cung cấp quần áo thời trang"),
+                        new OA\Property(property: "logo", type: "string", format: "binary", description: "File ảnh logo tải lên từ máy")
+                    ]
+                )
             )
         ),
         responses: [
