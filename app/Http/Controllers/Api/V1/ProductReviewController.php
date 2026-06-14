@@ -13,12 +13,87 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Exception;
+use OpenApi\Attributes as OA;
 
 class ProductReviewController extends Controller
 {
-    /**
-     * Store a new product review.
-     */
+    #[OA\Post(
+        path: "/orders/{order_id}/products/{product_id}/review",
+        summary: "Đánh giá sản phẩm trong đơn hàng",
+        description: "Người dùng viết nhận xét, đánh giá số sao kèm hình ảnh cho sản phẩm thuộc đơn hàng đã hoàn tất.",
+        operationId: "storeProductReview",
+        tags: ["Product Reviews"],
+        security: [["bearerAuth" => []]],
+        parameters: [
+            new OA\Parameter(name: "order_id", in: "path", description: "ID của đơn hàng", required: true, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: "product_id", in: "path", description: "ID của sản phẩm", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: "multipart/form-data",
+                schema: new OA\Schema(
+                    required: ["rating"],
+                    properties: [
+                        new OA\Property(property: "rating", type: "integer", minimum: 1, maximum: 5, description: "Số sao đánh giá (1-5)", example: 5),
+                        new OA\Property(property: "comment", type: "string", description: "Bình luận nhận xét sản phẩm", example: "Sản phẩm rất đẹp và chất lượng, giao hàng cực nhanh."),
+                        new OA\Property(property: "image", type: "string", format: "binary", description: "Ảnh chụp sản phẩm (tối đa 2MB)")
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: "Đánh giá sản phẩm thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Đánh giá sản phẩm thành công!"),
+                        new OA\Property(
+                            property: "data",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "id", type: "integer", example: 1),
+                                new OA\Property(property: "rating", type: "integer", example: 5),
+                                new OA\Property(property: "comment", type: "string", example: "Sản phẩm rất đẹp và chất lượng, giao hàng cực nhanh."),
+                                new OA\Property(property: "image_url", type: "string", example: "http://localhost:8000/storage/products/xyz.jpg"),
+                                new OA\Property(property: "created_at", type: "string", example: "2026-06-14 11:08:49")
+                            ]
+                        )
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 400,
+                description: "Lỗi nghiệp vụ (Đơn hàng chưa giao thành công, đã đánh giá rồi, hoặc sản phẩm không nằm trong đơn hàng)",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: false),
+                        new OA\Property(property: "message", type: "string", example: "Bạn chỉ có thể đánh giá sản phẩm sau khi đơn hàng được giao thành công.")
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Không tìm thấy đơn hàng",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: false),
+                        new OA\Property(property: "message", type: "string", example: "Không tìm thấy đơn hàng hoặc đơn hàng không thuộc về bạn.")
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 422,
+                description: "Dữ liệu đầu vào không hợp lệ"
+            ),
+            new OA\Response(
+                response: 500,
+                description: "Lỗi hệ thống"
+            )
+        ]
+    )]
     public function store(Request $request, $orderId, $productId): JsonResponse
     {
         try {

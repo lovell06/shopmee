@@ -1600,6 +1600,69 @@
                 ]
             }
         },
+        "/chat/gemini": {
+            "post": {
+                "tags": [
+                    "Chatbot AI"
+                ],
+                "summary": "Hỏi đáp với AI Gemini",
+                "description": "Gửi tin nhắn/câu hỏi đến AI Gemini và nhận câu trả lời.",
+                "operationId": "askGemini",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "message"
+                                ],
+                                "properties": {
+                                    "message": {
+                                        "description": "Nội dung câu hỏi gửi tới AI",
+                                        "type": "string",
+                                        "example": "Giải thích ngắn gọn cơ chế bất đồng bộ của CPU."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "reply": {
+                                                    "type": "string",
+                                                    "example": "Cơ chế bất đồng bộ của CPU..."
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Dữ liệu đầu vào không hợp lệ"
+                    },
+                    "503": {
+                        "description": "Dịch vụ AI gặp sự cố"
+                    }
+                }
+            }
+        },
         "/checkout": {
             "post": {
                 "tags": [
@@ -2547,6 +2610,166 @@
                 ]
             }
         },
+        "/orders/{order_id}/products/{product_id}/review": {
+            "post": {
+                "tags": [
+                    "Product Reviews"
+                ],
+                "summary": "Đánh giá sản phẩm trong đơn hàng",
+                "description": "Người dùng viết nhận xét, đánh giá số sao kèm hình ảnh cho sản phẩm thuộc đơn hàng đã hoàn tất.",
+                "operationId": "storeProductReview",
+                "parameters": [
+                    {
+                        "name": "order_id",
+                        "in": "path",
+                        "description": "ID của đơn hàng",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "product_id",
+                        "in": "path",
+                        "description": "ID của sản phẩm",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "rating"
+                                ],
+                                "properties": {
+                                    "rating": {
+                                        "description": "Số sao đánh giá (1-5)",
+                                        "type": "integer",
+                                        "example": 5,
+                                        "maximum": 5,
+                                        "minimum": 1
+                                    },
+                                    "comment": {
+                                        "description": "Bình luận nhận xét sản phẩm",
+                                        "type": "string",
+                                        "example": "Sản phẩm rất đẹp và chất lượng, giao hàng cực nhanh."
+                                    },
+                                    "image": {
+                                        "description": "Ảnh chụp sản phẩm (tối đa 2MB)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Đánh giá sản phẩm thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Đánh giá sản phẩm thành công!"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "rating": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "comment": {
+                                                    "type": "string",
+                                                    "example": "Sản phẩm rất đẹp và chất lượng, giao hàng cực nhanh."
+                                                },
+                                                "image_url": {
+                                                    "type": "string",
+                                                    "example": "http://localhost:8000/storage/products/xyz.jpg"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "example": "2026-06-14 11:08:49"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Lỗi nghiệp vụ (Đơn hàng chưa giao thành công, đã đánh giá rồi, hoặc sản phẩm không nằm trong đơn hàng)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Bạn chỉ có thể đánh giá sản phẩm sau khi đơn hàng được giao thành công."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Không tìm thấy đơn hàng",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Không tìm thấy đơn hàng hoặc đơn hàng không thuộc về bạn."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Dữ liệu đầu vào không hợp lệ"
+                    },
+                    "500": {
+                        "description": "Lỗi hệ thống"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/products/{id}": {
             "get": {
                 "tags": [
@@ -2858,6 +3081,55 @@
                 ]
             }
         },
+        "/seller/orders": {
+            "get": {
+                "tags": [
+                    "Seller Orders"
+                ],
+                "summary": "Lấy danh sách đơn hàng của shop (dành cho Seller)",
+                "description": "Seller lấy danh sách các đơn hàng chứa sản phẩm từ shop của mình quản lý.",
+                "operationId": "getSellerOrders",
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Tải danh sách đơn hàng của shop thành công."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Yêu cầu không hợp lệ"
+                    },
+                    "401": {
+                        "description": "Chưa xác thực"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/shops/register": {
             "post": {
                 "tags": [
@@ -2968,6 +3240,10 @@
             "description": "Cart"
         },
         {
+            "name": "Chatbot AI",
+            "description": "Chatbot AI"
+        },
+        {
             "name": "Orders",
             "description": "Orders"
         },
@@ -2978,6 +3254,10 @@
         {
             "name": "Products",
             "description": "Products"
+        },
+        {
+            "name": "Product Reviews",
+            "description": "Product Reviews"
         },
         {
             "name": "Public Products",

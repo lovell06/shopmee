@@ -38,6 +38,7 @@ Route::prefix('v1')->group(function () {
         Route::get('seller/products', [ProductController::class, 'index']);
         Route::put('seller/products/{id}', [ProductController::class, 'update']);
         Route::delete('seller/products/{id}', [ProductController::class, 'destroy']);
+        Route::get('seller/orders', [SellerOrderController::class, 'index']);
         Route::patch('seller/orders/{id}', [SellerOrderController::class, 'updateStatus']);
         Route::get('seller/dashboard/revenue', [SellerDashboardController::class, 'revenue']);
         Route::post('products', [ProductController::class, 'store']);

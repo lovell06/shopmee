@@ -107,4 +107,62 @@ class SellerOrderController extends Controller
             ], $statusCode);
         }
     }
+
+    #[OA\Get(
+        path: "/seller/orders",
+        summary: "Lấy danh sách đơn hàng của shop (dành cho Seller)",
+        description: "Seller lấy danh sách các đơn hàng chứa sản phẩm từ shop của mình quản lý.",
+        operationId: "getSellerOrders",
+        tags: ["Seller Orders"],
+        security: [["bearerAuth" => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Thành công",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "success", type: "boolean", example: true),
+                        new OA\Property(property: "message", type: "string", example: "Tải danh sách đơn hàng của shop thành công."),
+                        new OA\Property(property: "data", type: "array", items: new OA\Items(type: "object"))
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 400,
+                description: "Yêu cầu không hợp lệ"
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Chưa xác thực"
+            )
+        ]
+    )]
+    public function index()
+    {
+        try {
+            $userId = Auth::id();
+            $orders = $this->orderService->getSellerOrders($userId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tải danh sách đơn hàng của shop thành công.',
+                'data' => $orders
+            ], 200);
+
+        } catch (Exception $e) {
+            $statusCode = in_array($e->getCode(), [400, 403, 404]) ? $e->getCode() : 500;
+
+            if ($statusCode === 500) {
+                Log::error('Lỗi hệ thống lấy đơn hàng cho seller: ' . $e->getMessage());
+                $message = 'Hệ thống đang gặp sự cố kỹ thuật. Vui lòng thử lại sau!';
+            } else {
+                $message = $e->getMessage();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $message
+            ], $statusCode);
+        }
+    }
 }

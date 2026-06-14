@@ -227,4 +227,38 @@ class OrderService
             return true;
         });
     }
+
+    /**
+     * Lấy danh sách đơn hàng từ những người mua hàng thuộc về Shop của Seller
+     *
+     * @param string $userId
+     * @return \Illuminate\Database\Eloquent\Collection
+     * @throws Exception
+     */
+    public function getSellerOrders(string $userId)
+    {
+        // 1. Kiểm tra shop của user
+        $shop = Shop::query()->where('owner_id', $userId)->first();
+        if (!$shop) {
+            throw new Exception('Bạn chưa đăng ký cửa hàng.', 400);
+        }
+
+        // 2. Lấy danh sách đơn hàng có chứa sản phẩm thuộc về Shop này
+        return Order::query()
+            ->whereHas('items.productVariant.product', function ($query) use ($shop) {
+                $query->where('shop_id', $shop->id);
+            })
+            ->with([
+                'user', // Thông tin người mua
+                'items' => function ($query) use ($shop) {
+                    // Eager load các item thuộc shop của seller này
+                    $query->whereHas('productVariant.product', function ($q) use ($shop) {
+                        $q->where('shop_id', $shop->id);
+                    })->with(['productVariant.product.images']);
+                }
+            ])
+            ->orderByDesc('created_at')
+            ->get();
+    }
 }
+

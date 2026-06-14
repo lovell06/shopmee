@@ -190,4 +190,104 @@ class SellerOrderTest extends TestCase
             'status' => 'shipping'
         ]);
     }
+
+    /**
+     * Test: Unauthenticated request to GET orders should be rejected.
+     */
+    public function test_unauthenticated_user_cannot_get_orders(): void
+    {
+        $response = $this->getJson('/api/v1/seller/orders');
+        $response->assertStatus(401);
+    }
+
+    /**
+     * Test: Authenticated user without a shop gets 400 error when getting orders.
+     */
+    public function test_user_without_shop_cannot_get_orders(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/seller/orders');
+
+        $response->assertStatus(400)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Bạn chưa đăng ký cửa hàng.',
+            ]);
+    }
+
+    /**
+     * Test: Seller can retrieve only orders containing items from their shop.
+     */
+    public function test_seller_can_retrieve_only_their_shop_orders(): void
+    {
+        // Seller A
+        $sellerA = User::factory()->create();
+        $shopA = Shop::factory()->create(['owner_id' => $sellerA->id]);
+        $productA = Product::factory()->create(['shop_id' => $shopA->id]);
+        $variantA = ProductVariant::factory()->create(['product_id' => $productA->id]);
+
+        // Seller B
+        $sellerB = User::factory()->create();
+        $shopB = Shop::factory()->create(['owner_id' => $sellerB->id]);
+        $productB = Product::factory()->create(['shop_id' => $shopB->id]);
+        $variantB = ProductVariant::factory()->create(['product_id' => $productB->id]);
+
+        $customer = User::factory()->create();
+
+        // Order 1 (has item A)
+        $order1 = Order::factory()->create([
+            'user_id' => $customer->id,
+            'status' => OrderStatus::Pending,
+        ]);
+        OrderItem::create([
+            'order_id' => $order1->id,
+            'product_variant_id' => $variantA->id,
+            'description' => 'Item A',
+            'quantity' => 1,
+            'unit_price' => 20000,
+        ]);
+
+        // Order 2 (has item B)
+        $order2 = Order::factory()->create([
+            'user_id' => $customer->id,
+            'status' => OrderStatus::Pending,
+        ]);
+        OrderItem::create([
+            'order_id' => $order2->id,
+            'product_variant_id' => $variantB->id,
+            'description' => 'Item B',
+            'quantity' => 2,
+            'unit_price' => 30000,
+        ]);
+
+        // Seller A requests their orders
+        $responseA = $this->actingAs($sellerA, 'sanctum')
+            ->getJson('/api/v1/seller/orders');
+
+        $responseA->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Tải danh sách đơn hàng của shop thành công.'
+            ]);
+
+        // Ensure Seller A only gets Order 1
+        $dataA = $responseA->json('data');
+        $this->assertCount(1, $dataA);
+        $this->assertEquals($order1->id, $dataA[0]['id']);
+        $this->assertCount(1, $dataA[0]['items']);
+        $this->assertEquals($variantA->id, $dataA[0]['items'][0]['product_variant_id']);
+
+        // Seller B requests their orders
+        $responseB = $this->actingAs($sellerB, 'sanctum')
+            ->getJson('/api/v1/seller/orders');
+
+        $responseB->assertStatus(200);
+        $dataB = $responseB->json('data');
+        $this->assertCount(1, $dataB);
+        $this->assertEquals($order2->id, $dataB[0]['id']);
+        $this->assertCount(1, $dataB[0]['items']);
+        $this->assertEquals($variantB->id, $dataB[0]['items'][0]['product_variant_id']);
+    }
 }
