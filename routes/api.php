@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\AddressController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\ProductReviewController;
+use App\Http\Controllers\Api\V1\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -58,6 +59,11 @@ Route::prefix('v1')->group(function () {
         Route::get('orders', [OrderController::class, 'index']); // Lấy danh sách lịch sử
         Route::post('orders/{id}/cancel', [OrderController::class, 'cancel']); // Hủy đơn hàng theo ID
         Route::post('orders/{order_id}/products/{product_id}/review', [ProductReviewController::class, 'store']); // Đánh giá sản phẩm
+        
+        // API Hồ sơ người dùng
+        Route::get('profile', [ProfileController::class, 'show']);
+        Route::put('profile', [ProfileController::class, 'update']);
+        Route::put('profile/password', [ProfileController::class, 'updatePassword']);
 
         Route::prefix('admin')->group(function () {
             Route::get('shops', [AdminController::class, 'listShops']);
