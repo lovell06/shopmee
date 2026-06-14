@@ -24,8 +24,8 @@ class ProductService
      */
     public function getProductList(array $filters): LengthAwarePaginator
     {
-        // Khởi tạo Query, luôn đi kèm dữ liệu variants và images
-        $query = Product::query()->with(['variants', 'images']); 
+        // Khởi tạo Query, luôn đi kèm dữ liệu variants, images và reviews
+        $query = Product::query()->with(['variants', 'images', 'reviews']); 
 
         // 1. TÌM KIẾM: Theo tên sản phẩm
         if (!empty($filters['search'])) {
@@ -251,7 +251,7 @@ class ProductService
     public function getProductById(int $id): Product
     {
         $product = Product::query()
-            ->with(['variants', 'images', 'shop', 'category'])
+            ->with(['variants', 'images', 'shop', 'category', 'reviews.user'])
             ->find($id);
 
         if (!$product) {

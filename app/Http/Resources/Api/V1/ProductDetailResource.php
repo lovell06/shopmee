@@ -20,6 +20,18 @@ class ProductDetailResource extends JsonResource
             'description'   => $this->description,
             'status'        => $this->status->value ?? $this->status,
             'created_at'    => $this->created_at->format('Y-m-d H:i:s'),
+            'rating_avg'    => round($this->reviews->avg('rating') ?? 5.0, 1),
+            'rating_count'  => $this->reviews->count(),
+            'reviews'       => $this->reviews->sortByDesc('created_at')->map(fn($r) => [
+                'id'           => $r->id,
+                'user_name'    => $r->user->name ?? 'Người dùng ẩn danh',
+                'rating'       => $r->rating,
+                'comment'      => $r->comment,
+                'variant_name' => $r->variant_name,
+                'image_url'    => $r->image ? asset('storage/' . $r->image) : null,
+                'created_at'   => $r->created_at->format('Y-m-d H:i:s')
+            ])->values()->all(),
+
             'category'      => [
                 'id'   => $this->category_id,
                 'name' => $this->category->name ?? null,

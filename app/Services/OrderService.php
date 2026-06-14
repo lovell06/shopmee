@@ -166,12 +166,31 @@ class OrderService
      */
     public function getUserOrderHistory(string $userId)
     {
-        return Order::query()
+        $orders = Order::query()
             ->where('user_id', $userId)
             ->with(['items.productVariant.product.images', 'items.productVariant.product.shop']) // Eager load để lấy tên/ảnh/shop sản phẩm ở Frontend
             ->orderByDesc('created_at') // Đơn hàng mới nhất xếp lên đầu
             ->get();
+
+        // Lấy tất cả reviews của user này để kiểm tra xem sản phẩm nào trong đơn hàng nào đã được đánh giá
+        $reviewedProductIds = DB::table('product_reviews')
+            ->where('user_id', $userId)
+            ->select('order_id', 'product_id')
+            ->get()
+            ->groupBy('order_id')
+            ->map(fn($item) => $item->pluck('product_id')->toArray());
+
+        foreach ($orders as $order) {
+            $reviewedForOrder = $reviewedProductIds->get($order->id) ?? [];
+            foreach ($order->items as $item) {
+                $productId = $item->productVariant->product->id ?? null;
+                $item->is_reviewed = $productId ? in_array($productId, $reviewedForOrder) : false;
+            }
+        }
+
+        return $orders;
     }
+
 
     /**
      * Xử lý hủy đơn hàng (Chỉ cho phép khi ở trạng thái Pending)

@@ -19,6 +19,9 @@ class ProductResource extends JsonResource
             'name'       => $this->name,
             'status'     => $this->status->value ?? $this->status,
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
+            'rating_avg'   => round($this->reviews->avg('rating') ?? 5.0, 1),
+            'rating_count' => $this->reviews->count(),
+
             
             // Format mảng biến thể lồng bên trong sản phẩm
             'variants'   => $this->variants->map(fn($variant) => [

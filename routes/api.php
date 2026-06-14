@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\SellerDashboardController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\AddressController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\ProductReviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -56,6 +57,7 @@ Route::prefix('v1')->group(function () {
         
         Route::get('orders', [OrderController::class, 'index']); // Lấy danh sách lịch sử
         Route::post('orders/{id}/cancel', [OrderController::class, 'cancel']); // Hủy đơn hàng theo ID
+        Route::post('orders/{order_id}/products/{product_id}/review', [ProductReviewController::class, 'store']); // Đánh giá sản phẩm
 
         Route::prefix('admin')->group(function () {
             Route::get('shops', [AdminController::class, 'listShops']);
