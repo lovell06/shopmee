@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\Log;
 
 class GeminiService implements ChatbotServiceInterface
 {
-    private string $apiKey;
-    private string $baseUrl;
-    private string $model;
+    private ?string $apiKey;
+    private ?string $baseUrl;
+    private ?string $model;
 
     public function __construct()
     {
@@ -21,6 +21,16 @@ class GeminiService implements ChatbotServiceInterface
 
     public function sendMessage(string $prompt): ?string
     {
+        if (empty($this->apiKey)) {
+            Log::error('Gemini Service: API key is not configured in .env (GEMINI_API_KEY).');
+            return null;
+        }
+
+        if (empty($this->baseUrl) || empty($this->model)) {
+            Log::error('Gemini Service: Base URL or Model is missing.');
+            return null;
+        }
+
         // Xây dựng endpoint chuẩn hóa của Google API
         $endpoint = "{$this->baseUrl}{$this->model}:generateContent?key={$this->apiKey}";
 
