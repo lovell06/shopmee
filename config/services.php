@@ -44,4 +44,10 @@ return [
         'ipn_url' => env('MOMO_IPN_URL'),
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'base_url' => env('GEMINI_BASE_URL'),
+        'model'   => env('GEMINI_DEFAULT_MODEL', 'gemini-2.5-flash'),
+    ],
+
 ];

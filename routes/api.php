@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\AddressController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\ProductReviewController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\ChatController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -28,6 +29,8 @@ Route::prefix('v1')->group(function () {
     
     // Webhook IPN của MoMo (Không qua auth vì do MoMo Server gọi đến)
     Route::post('payments/momo-ipn', [OrderController::class, 'momoIpn']);
+
+    Route::post('chat/gemini', [ChatController::class, 'ask']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
