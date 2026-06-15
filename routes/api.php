@@ -82,6 +82,8 @@ Route::prefix('v1')->group(function () {
             Route::get('orders', [AdminController::class, 'listOrders']);
             Route::get('revenue', [AdminController::class, 'revenue']);
             Route::post('categories', [AdminController::class, 'storeCategory']);
+            Route::put('categories/{id}', [AdminController::class, 'updateCategory']);
+            Route::delete('categories/{id}', [AdminController::class, 'destroyCategory']);
         });
     });
 });

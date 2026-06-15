@@ -681,4 +681,69 @@ class AdminController extends Controller
             'data' => $category,
         ], 201);
     }
+
+    public function updateCategory(\Illuminate\Http\Request $request, int $id): JsonResponse
+    {
+        if ($response = $this->ensureAdminAccess()) {
+            return $response;
+        }
+
+        $category = \App\Models\Category::find($id);
+        if (!$category) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy danh mục.',
+            ], 404);
+        }
+
+        $request->validate([
+            'name' => 'required|string|unique:categories,name,' . $id . '|max:255',
+        ], [
+            'name.required' => 'Vui lòng nhập tên danh mục.',
+            'name.string' => 'Tên danh mục phải là chuỗi.',
+            'name.unique' => 'Tên danh mục này đã tồn tại.',
+            'name.max' => 'Tên danh mục không được vượt quá 255 ký tự.',
+        ]);
+
+        $category->update([
+            'name' => $request->input('name'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật danh mục sản phẩm thành công!',
+            'data' => $category,
+        ], 200);
+    }
+
+    public function destroyCategory(int $id): JsonResponse
+    {
+        if ($response = $this->ensureAdminAccess()) {
+            return $response;
+        }
+
+        $category = \App\Models\Category::find($id);
+        if (!$category) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy danh mục.',
+            ], 404);
+        }
+
+        // Kiểm tra xem có sản phẩm nào thuộc danh mục này không
+        $productCount = \App\Models\Product::where('category_id', $id)->count();
+        if ($productCount > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể xóa danh mục này vì đang có ' . $productCount . ' sản phẩm thuộc danh mục này.',
+            ], 400);
+        }
+
+        $category->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Xóa danh mục sản phẩm thành công!',
+        ], 200);
+    }
 }
