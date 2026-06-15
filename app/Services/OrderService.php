@@ -52,6 +52,12 @@ class OrderService
 
         // 4. Cập nhật trạng thái đơn hàng
         $order->status = $status;
+
+        // Nếu giao hàng thành công, tự động cập nhật trạng thái thanh toán thành đã thanh toán
+        if ($status === OrderStatus::Delivered->value) {
+            $order->payment_status = PaymentStatus::Paid->value;
+        }
+
         $order->save();
 
         return $order;

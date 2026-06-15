@@ -105,11 +105,12 @@ class ChatController extends Controller
 
                 // Fetch platform products context for the buyer to ask budget queries
                 $productsList = Product::where('status', \App\Enums\ProductStatus::Active)
-                    ->with(['variants'])
-                    ->limit(50)
+                    ->with(['variants', 'shop:id,name'])
+                    ->limit(100)
                     ->get()
                     ->map(fn($p) => [
                         'name' => $p->name,
+                        'shop_name' => $p->shop->name ?? 'N/A',
                         'variants' => $p->variants->map(fn($v) => [
                             'name' => $v->variant_name,
                             'price' => (float)$v->price,
@@ -119,8 +120,9 @@ class ChatController extends Controller
 
                 $systemInstruction = "Bạn là trợ lý Mee AI của Shopmee. Khách hàng đang hỏi có tên là '{$user->name}' (Email: '{$user->email}'). " .
                     "Lịch sử 5 đơn hàng gần nhất của họ: " . json_encode($orders) . ". " .
-                    "Danh sách các sản phẩm đang có trên sàn và các biến thể kèm giá: " . json_encode($productsList) . ". " .
-                    "Hãy dựa trên dữ liệu đơn hàng này và danh sách sản phẩm của sàn để trả lời bất cứ câu hỏi nào về trạng thái đơn hàng của họ, hoặc tư vấn sản phẩm cho họ. " .
+                    "Danh sách các sản phẩm đang có trên sàn và các biến thể kèm giá và tên cửa hàng: " . json_encode($productsList) . ". " .
+                    "Hãy dựa trên dữ liệu đơn hàng này và danh sách sản phẩm của sàn để trả lời bất cứ câu hỏi nào về trạng thái đơn hàng của họ, hoặc tư vấn, gợi ý sản phẩm cho họ. " .
+                    "Khi gợi ý sản phẩm, hãy cung cấp rõ Tên sản phẩm, Tên shop (cửa hàng bán), Giá và các phân loại/biến thể nếu có. " .
                     "Khi họ hỏi với số tiền X thì mua được cái gì, hãy tính toán và liệt kê các sản phẩm/biến thể phù hợp với túi tiền của họ từ danh sách sản phẩm trên sàn, có giá bán nhỏ hơn hoặc bằng X. " .
                     "Trả lời một cách chuyên nghiệp, thân thiện và chính xác bằng tiếng Việt.";
             } elseif ($role === UserRole::Seller) {
