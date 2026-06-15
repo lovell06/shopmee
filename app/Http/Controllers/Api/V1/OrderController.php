@@ -367,10 +367,20 @@ class OrderController extends Controller
         
         $success = $momoService->processPaymentResult($request->all());
         
+        $orderIdWithTime = $request->input('orderId', '');
+        $parts = explode('_', $orderIdWithTime);
+        $orderId = (int) $parts[0];
+        $order = Order::find($orderId);
+        
         return response()->json([
             'success' => $success,
             'message' => $success ? 'Thanh toán MoMo thành công.' : 'Thanh toán MoMo thất bại hoặc bị hủy.',
-            'data' => $request->all()
+            'data' => [
+                'order_id' => $order ? $order->id : $orderId,
+                'total_amount' => $order ? (float)$order->total_amount : $request->input('amount'),
+                'payment_method' => $order ? $order->payment_method : 'momo',
+                'payment_status' => $order ? $order->payment_status : ($success ? 'paid' : 'failed')
+            ]
         ], 200);
     }
 }

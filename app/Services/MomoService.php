@@ -34,7 +34,7 @@ class MomoService
      */
     public function createPaymentUrl(Order $order): string
     {
-        $amount = (int) ($order->total_amount * 26000);
+        $amount = (int) $order->total_amount;
         $timestamp = time();
         // Sử dụng thêm chuỗi ngẫu nhiên uniqid() để tránh trùng lặp requestId/orderId nếu nhấn thanh toán quá nhanh
         $orderId = $order->id . '_' . $timestamp . '_' . uniqid();
@@ -219,8 +219,8 @@ class MomoService
 
                 if ($resultCode === 0) {
                     // Bảo mật: Xác thực số tiền thanh toán thực tế khớp với tổng tiền đơn hàng
-                    if ($amount !== (int) ($order->total_amount * 26000)) {
-                        Log::error("MoMo callback: Amount mismatch for order #{$orderId}. Expected: " . ($order->total_amount * 26000) . ", Got: {$amount}");
+                    if ($amount !== (int) $order->total_amount) {
+                        Log::error("MoMo callback: Amount mismatch for order #{$orderId}. Expected: " . $order->total_amount . ", Got: {$amount}");
                         
                         $order->update([
                             'payment_status' => PaymentStatus::Failed->value,
