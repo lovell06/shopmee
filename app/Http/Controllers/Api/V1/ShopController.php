@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ShopRegisterRequest;
+use App\Http\Requests\Api\V1\ShopUpdateRequest;
+use App\Models\Shop;
 use App\Services\ShopService; 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -99,6 +101,63 @@ class ShopController extends Controller
                 'success' => false,
                 'message' => $message
             ], $statusCode);
+        }
+    }
+
+    public function show()
+    {
+        try {
+            $user = Auth::user();
+            $shop = Shop::where('owner_id', $user->id)->first();
+
+            if (!$shop) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn chưa đăng ký cửa hàng.'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Lấy thông tin cửa hàng thành công.',
+                'data' => $shop
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi hệ thống khi lấy thông tin cửa hàng.'
+            ], 500);
+        }
+    }
+
+    public function update(ShopUpdateRequest $request)
+    {
+        try {
+            $user = Auth::user();
+            $shop = Shop::where('owner_id', $user->id)->first();
+
+            if (!$shop) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cửa hàng không tồn tại.'
+                ], 404);
+            }
+
+            $updatedShop = $this->shopService->updateShop($request->validated(), $shop);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật thông tin cửa hàng thành công!',
+                'data' => $updatedShop
+            ], 200);
+
+        } catch (Exception $e) {
+            Log::error('Lỗi cập nhật cửa hàng: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi hệ thống khi cập nhật cửa hàng.'
+            ], 500);
         }
     }
 }

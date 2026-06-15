@@ -33,4 +33,27 @@ class ShopService
             'logo_url'     => $logoPath,
         ]);
     }
+
+    /**
+     * Xử lý nghiệp vụ cập nhật Shop
+     */
+    public function updateShop(array $data, Shop $shop): Shop
+    {
+        // 1. Lưu ảnh logo mới nếu có và xóa ảnh cũ
+        if (isset($data['logo']) && $data['logo'] instanceof \Illuminate\Http\UploadedFile) {
+            $rawLogoPath = $shop->getRawOriginal('logo_url');
+            if ($rawLogoPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($rawLogoPath)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($rawLogoPath);
+            }
+            $logoPath = $data['logo']->store('logos', 'public');
+            $shop->logo_url = $logoPath;
+        }
+
+        // 2. Cập nhật các thông tin khác
+        $shop->name = $data['name'];
+        $shop->description = $data['description'] ?? null;
+        $shop->save();
+
+        return $shop;
+    }
 }

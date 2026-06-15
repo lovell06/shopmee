@@ -36,6 +36,8 @@ Route::prefix('v1')->group(function () {
         Route::post('chat/gemini', [ChatController::class, 'ask']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::post('shops/register', [ShopController::class, 'register']);
+        Route::get('seller/shop', [ShopController::class, 'show']);
+        Route::post('seller/shop', [ShopController::class, 'update']);
         Route::get('seller/products', [ProductController::class, 'index']);
         Route::put('seller/products/{id}', [ProductController::class, 'update']);
         Route::delete('seller/products/{id}', [ProductController::class, 'destroy']);
@@ -79,6 +81,7 @@ Route::prefix('v1')->group(function () {
             Route::patch('products/{product}', [AdminController::class, 'updateProductStatus']);
             Route::get('orders', [AdminController::class, 'listOrders']);
             Route::get('revenue', [AdminController::class, 'revenue']);
+            Route::post('categories', [AdminController::class, 'storeCategory']);
         });
     });
 });

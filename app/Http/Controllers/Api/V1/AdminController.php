@@ -655,4 +655,30 @@ class AdminController extends Controller
             ],
         ], 200);
     }
+
+    public function storeCategory(\Illuminate\Http\Request $request): JsonResponse
+    {
+        if ($response = $this->ensureAdminAccess()) {
+            return $response;
+        }
+
+        $request->validate([
+            'name' => 'required|string|unique:categories,name|max:255',
+        ], [
+            'name.required' => 'Vui lòng nhập tên danh mục.',
+            'name.string' => 'Tên danh mục phải là chuỗi.',
+            'name.unique' => 'Tên danh mục này đã tồn tại.',
+            'name.max' => 'Tên danh mục không được vượt quá 255 ký tự.',
+        ]);
+
+        $category = \App\Models\Category::create([
+            'name' => $request->input('name'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tạo danh mục sản phẩm thành công!',
+            'data' => $category,
+        ], 201);
+    }
 }
