@@ -24,7 +24,7 @@ class ProductListRequest extends FormRequest
     {
         return [
             'search'      => 'nullable|string|max:255',
-            'category_id' => 'nullable|string', // Để string vì dùng UUID
+            'category_id' => 'nullable|integer',
             'shop_id'     => 'nullable|string', 
             'price_min'   => 'nullable|numeric|min:0',
             'price_max'   => 'nullable|numeric|gte:price_min',

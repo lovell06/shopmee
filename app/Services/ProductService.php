@@ -32,6 +32,11 @@ class ProductService
             $query->where('products.name', 'LIKE', '%' . $filters['search'] . '%');
         }
 
+        // LỌC THEO DANH MỤC:
+        if (!empty($filters['category_id'])) {
+            $query->where('category_id', $filters['category_id']);
+        }
+
         // 2. BỘ LỌC KHOẢNG GIÁ: Tìm xem sản phẩm nào có biến thể nằm trong khoảng giá
         if (isset($filters['price_min']) || isset($filters['price_max'])) {
             $query->whereHas('variants', function ($q) use ($filters) {

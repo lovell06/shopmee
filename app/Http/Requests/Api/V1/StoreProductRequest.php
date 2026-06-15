@@ -20,6 +20,11 @@ class StoreProductRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        if ($this->has('category_id') && is_numeric($this->category_id)) {
+            $this->merge([
+                'category_id' => (int)$this->category_id,
+            ]);
+        }
         if (is_string($this->variants)) {
             $this->merge([
                 'variants' => json_decode($this->variants, true),

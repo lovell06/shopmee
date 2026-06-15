@@ -103,7 +103,26 @@ class ChatController extends Controller
                         ])
                     ]);
 
-                $systemInstruction = "Bạn là trợ lý Mee AI của Shopmee. Khách hàng đang hỏi có tên là '{$user->name}' (Email: '{$user->email}'). Lịch sử 5 đơn hàng gần nhất của họ: " . json_encode($orders) . ". Hãy dựa trên dữ liệu đơn hàng này để trả lời bất cứ câu hỏi nào về trạng thái đơn hàng của họ. Trả lời một cách chuyên nghiệp, thân thiện và chính xác bằng tiếng Việt.";
+                // Fetch platform products context for the buyer to ask budget queries
+                $productsList = Product::where('status', \App\Enums\ProductStatus::Active)
+                    ->with(['variants'])
+                    ->limit(50)
+                    ->get()
+                    ->map(fn($p) => [
+                        'name' => $p->name,
+                        'variants' => $p->variants->map(fn($v) => [
+                            'name' => $v->variant_name,
+                            'price' => (float)$v->price,
+                            'stock' => $v->stock_quantity,
+                        ])
+                    ]);
+
+                $systemInstruction = "Bạn là trợ lý Mee AI của Shopmee. Khách hàng đang hỏi có tên là '{$user->name}' (Email: '{$user->email}'). " .
+                    "Lịch sử 5 đơn hàng gần nhất của họ: " . json_encode($orders) . ". " .
+                    "Danh sách các sản phẩm đang có trên sàn và các biến thể kèm giá: " . json_encode($productsList) . ". " .
+                    "Hãy dựa trên dữ liệu đơn hàng này và danh sách sản phẩm của sàn để trả lời bất cứ câu hỏi nào về trạng thái đơn hàng của họ, hoặc tư vấn sản phẩm cho họ. " .
+                    "Khi họ hỏi với số tiền X thì mua được cái gì, hãy tính toán và liệt kê các sản phẩm/biến thể phù hợp với túi tiền của họ từ danh sách sản phẩm trên sàn, có giá bán nhỏ hơn hoặc bằng X. " .
+                    "Trả lời một cách chuyên nghiệp, thân thiện và chính xác bằng tiếng Việt.";
             } elseif ($role === UserRole::Seller) {
                 // Fetch seller context: shop info, low stock variants, latest shop orders
                 $shop = Shop::where('owner_id', $user->id)->first();

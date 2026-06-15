@@ -430,6 +430,13 @@ class AdminController extends Controller
             return $response;
         }
 
+        if ($user->role === UserRole::Admin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể thay đổi trạng thái hoặc khóa tài khoản của Quản trị viên.',
+            ], 403);
+        }
+
         $status = $request->input('status');
         $user->status = $status;
         $user->save();
